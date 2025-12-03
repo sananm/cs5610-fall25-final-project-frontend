@@ -32,6 +32,10 @@ body {
   font-size: 1.5rem;
 }
 
+.navbar-brand svg {
+  color: var(--primary-color) !important;
+}
+
 /* Main content area */
 .main-content {
   margin-top: 80px !important;
@@ -292,6 +296,10 @@ body {
 }
 
 [data-bs-theme="dark"] .navbar-brand {
+  color: #2d88ff !important;
+}
+
+[data-bs-theme="dark"] .navbar-brand svg {
   color: #2d88ff !important;
 }
 
@@ -676,6 +684,11 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.hero-section h1 svg {
+  color: white !important;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
 .hero-section .lead {
   color: rgba(255, 255, 255, 0.95) !important;
   font-size: 1.5rem;
@@ -725,6 +738,11 @@ body {
 
 [data-bs-theme="dark"] .hero-section .card-body {
   background: linear-gradient(135deg, rgba(74, 85, 104, 0.95) 0%, rgba(45, 55, 72, 0.95) 100%);
+}
+
+[data-bs-theme="dark"] .hero-section h1 svg {
+  color: white !important;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
 }
 
 [data-bs-theme="dark"] .hero-section .btn-primary {
@@ -792,4 +810,20 @@ body {
   text-align: right;
   display: inline-block;
   min-width: 30px;
+}
+
+/* Movie details page - login prompts in dark mode */
+[data-bs-theme="dark"] .card-body.bg-light {
+  background-color: #3a3b3c !important;
+  color: #e4e6eb;
+}
+
+[data-bs-theme="dark"] .bg-light.rounded {
+  background-color: #3a3b3c !important;
+  color: #e4e6eb;
+}
+
+[data-bs-theme="dark"] .bg-light .text-muted,
+[data-bs-theme="dark"] .card-body.bg-light .text-muted {
+  color: #b0b3b8 !important;
 }
