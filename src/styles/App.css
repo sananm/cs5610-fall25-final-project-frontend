@@ -771,7 +771,7 @@ body {
 }
 
 [data-bs-theme="dark"] .profile-cover {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  background: linear-gradient(135deg, #434190 0%, #2a5470 100%);
 }
 
 [data-bs-theme="dark"] .list-group-item a {

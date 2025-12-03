@@ -23,7 +23,9 @@ function Profile() {
     lastName: '',
     bio: '',
     location: '',
-    website: ''
+    website: '',
+    profilePicture: '',
+    coverPhoto: ''
   });
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
@@ -33,7 +35,7 @@ function Profile() {
 
   useEffect(() => {
     fetchProfile();
-  }, [userId, currentUser]);
+  }, [userId]);
 
   const fetchProfile = async () => {
     try {
@@ -66,7 +68,9 @@ function Profile() {
           lastName: userRes.data.lastName || '',
           bio: userRes.data.bio || '',
           location: userRes.data.location || '',
-          website: userRes.data.website || ''
+          website: userRes.data.website || '',
+          profilePicture: userRes.data.profilePicture || '',
+          coverPhoto: userRes.data.coverPhoto || ''
         });
       }
 
@@ -93,18 +97,37 @@ function Profile() {
     });
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (e) => {
+    if (e) e.preventDefault();
+
     try {
       setEditError('');
       setEditSuccess('');
 
       const response = await authAPI.updateProfile(editForm);
 
-      if (response.data.user) {
-        updateUser(response.data.user);
-        setProfileUser(response.data.user);
+      if (response.data) {
+        // Update local state without triggering re-fetch
+        setProfileUser(response.data);
+
+        // Also update the edit form with new values
+        setEditForm({
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          bio: response.data.bio || '',
+          location: response.data.location || '',
+          website: response.data.website || '',
+          profilePicture: response.data.profilePicture || '',
+          coverPhoto: response.data.coverPhoto || ''
+        });
+
+        // Update context for navbar/other components
+        updateUser(response.data);
+
+        // Show success message
         setEditSuccess('Profile updated successfully!');
 
+        // Close modal after brief delay to show success message
         setTimeout(() => {
           setShowEditModal(false);
           setEditSuccess('');
@@ -158,7 +181,14 @@ function Profile() {
   return (
     <Container className="main-content py-4">
       <div className="profile-header">
-        <div className="profile-cover"></div>
+        <div
+          className="profile-cover"
+          style={profileUser.coverPhoto && !profileUser.coverPhoto.includes('placeholder') ? {
+            backgroundImage: `url(${profileUser.coverPhoto})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          } : {}}
+        ></div>
         <div className="profile-info">
           <img
             src={profileUser.profilePicture || 'https://via.placeholder.com/150'}
@@ -360,6 +390,34 @@ function Profile() {
 
           <Form>
             <Form.Group className="mb-3">
+              <Form.Label>Profile Picture URL</Form.Label>
+              <Form.Control
+                type="url"
+                name="profilePicture"
+                value={editForm.profilePicture}
+                onChange={handleEditFormChange}
+                placeholder="https://example.com/your-profile-picture.jpg"
+              />
+              <Form.Text className="text-muted">
+                Enter a URL to an image for your profile picture
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Cover Photo URL</Form.Label>
+              <Form.Control
+                type="url"
+                name="coverPhoto"
+                value={editForm.coverPhoto}
+                onChange={handleEditFormChange}
+                placeholder="https://example.com/your-cover-photo.jpg"
+              />
+              <Form.Text className="text-muted">
+                Enter a URL to an image for your profile banner
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label>First Name</Form.Label>
               <Form.Control
                 type="text"
@@ -424,8 +482,12 @@ function Profile() {
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSaveProfile} disabled={!!editSuccess}>
-            Save Changes
+          <Button
+            variant="primary"
+            onClick={handleSaveProfile}
+            disabled={!!editSuccess}
+          >
+            {editSuccess ? 'Saved!' : 'Save Changes'}
           </Button>
         </Modal.Footer>
       </Modal>
