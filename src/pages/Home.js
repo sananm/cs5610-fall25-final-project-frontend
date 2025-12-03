@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, ListGroup, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaHeart, FaComment, FaShare } from 'react-icons/fa';
+import { FaHeart, FaComment, FaShare, FaFilm } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { postAPI, movieAPI, commentAPI } from '../services/api';
 import OnboardingModal from '../components/OnboardingModal';
@@ -211,10 +211,37 @@ function Home() {
   return (
     <Container className="main-content py-4">
       <OnboardingModal show={showOnboarding} onComplete={handleOnboardingComplete} />
+
+      {/* Hero Section - Visible to all users */}
+      {!isAuthenticated && (
+        <Card className="hero-section mb-4 border-0 shadow-sm">
+          <Card.Body className="text-center py-5">
+            <h1 className="display-4 fw-bold mb-3">
+              <FaFilm className="me-3 text-primary" />
+              SocialConnect
+            </h1>
+            <p className="lead mb-4">
+              Connect with friends and discover amazing movies together
+            </p>
+            <p className="text-muted mb-4">
+              Share your favorite films, get personalized recommendations, and engage with a community of movie lovers
+            </p>
+            <div className="d-flex gap-3 justify-content-center">
+              <Button as={Link} to="/register" variant="primary" size="lg">
+                Get Started
+              </Button>
+              <Button as={Link} to="/search" variant="outline-primary" size="lg">
+                Explore Movies
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
+
       <Row>
         <Col lg={8}>
           <h2 className="mb-4">
-            {isAuthenticated ? `Welcome back, ${user?.username}!` : 'Welcome to SocialConnect'}
+            {isAuthenticated ? `Welcome back, ${user?.username}!` : 'Latest Posts'}
           </h2>
 
           {isAuthenticated && (
@@ -450,11 +477,11 @@ function Home() {
       </Row>
 
       {/* Likes Modal */}
-      <Modal show={showLikesModal} onHide={() => setShowLikesModal(false)} centered>
+      <Modal show={showLikesModal} onHide={() => setShowLikesModal(false)} centered scrollable>
         <Modal.Header closeButton>
           <Modal.Title>Likes</Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ maxHeight: '400px', overflowY: 'auto' }}>
+        <Modal.Body>
           {selectedPostLikes.length === 0 ? (
             <p className="text-muted text-center">No likes yet</p>
           ) : (

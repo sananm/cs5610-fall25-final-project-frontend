@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, ListGroup, Badge } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaBookmark, FaStar } from 'react-icons/fa';
+import { FaBookmark, FaStar, FaCheck, FaTimes } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { movieAPI, postAPI } from '../services/api';
 
@@ -21,7 +22,7 @@ function MovieDetails() {
 
   useEffect(() => {
     fetchMovieDetails();
-  }, [tmdbId]);
+  }, [tmdbId, user]);
 
   const fetchMovieDetails = async () => {
     try {
@@ -29,15 +30,27 @@ function MovieDetails() {
       const tmdbRes = await movieAPI.getMovieFromTMDB(tmdbId);
       setMovie(tmdbRes.data);
 
-      // Try to fetch from local DB
+      // Try to fetch from local DB and check if user has saved it
       try {
+        if (user) {
+          // Fetch user's saved movies to check if this movie is saved
+          const userMoviesRes = await movieAPI.getUserMovies(user._id);
+          const savedMovies = userMoviesRes.data || [];
+          const isSavedByUser = savedMovies.some(m => m.tmdbId === parseInt(tmdbId));
+          setIsSaved(isSavedByUser);
+
+          // If saved, set the local movie data
+          if (isSavedByUser) {
+            const savedMovie = savedMovies.find(m => m.tmdbId === parseInt(tmdbId));
+            setLocalMovie(savedMovie);
+          }
+        }
+
+        // Also fetch from all movies to get reviews and other data
         const localRes = await movieAPI.getAllMovies();
         const found = localRes.data.movies.find(m => m.tmdbId === parseInt(tmdbId));
-        if (found) {
+        if (found && !localMovie) {
           setLocalMovie(found);
-          if (user) {
-            setIsSaved(found.savedBy?.some(u => u._id === user._id));
-          }
         }
       } catch (err) {
         console.log('Movie not in local DB yet');
@@ -56,7 +69,7 @@ function MovieDetails() {
     }
 
     try {
-      await movieAPI.saveMovie({
+      const response = await movieAPI.saveMovie({
         tmdbId: movie.id,
         title: movie.title,
         overview: movie.overview,
@@ -69,10 +82,63 @@ function MovieDetails() {
         runtime: movie.runtime,
         tagline: movie.tagline
       });
+
+      // Update state immediately without full refresh
       setIsSaved(true);
-      fetchMovieDetails();
+      setLocalMovie(response.data);
+
+      // Show success notification
+      toast.success(
+        <div className="d-flex align-items-center">
+          <FaCheck className="me-2" />
+          <span>Movie saved successfully!</span>
+        </div>,
+        {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+        }
+      );
     } catch (err) {
       console.error('Error saving movie:', err);
+      toast.error('Failed to save movie. Please try again.', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleUnsaveMovie = async () => {
+    if (!isAuthenticated || !localMovie) {
+      return;
+    }
+
+    try {
+      await movieAPI.unsaveMovie(localMovie._id);
+
+      // Update state immediately
+      setIsSaved(false);
+
+      // Show success notification
+      toast.info('Movie removed from saved', {
+        position: "bottom-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+      });
+    } catch (err) {
+      console.error('Error unsaving movie:', err);
+      toast.error('Failed to remove movie. Please try again.', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleToggleSave = () => {
+    if (isSaved) {
+      handleUnsaveMovie();
+    } else {
+      handleSaveMovie();
     }
   };
 
@@ -95,8 +161,17 @@ function MovieDetails() {
       setReviewContent('');
       setReviewRating(5);
       fetchMovieDetails();
+
+      toast.success('Review posted successfully!', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error('Error adding review:', err);
+      toast.error(err.response?.data?.message || 'Failed to post review', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     }
   };
 
@@ -113,9 +188,17 @@ function MovieDetails() {
         movie: localMovie?._id
       });
       setPostContent('');
-      alert('Post created successfully!');
+
+      toast.success('Post created successfully!', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error('Error creating post:', err);
+      toast.error('Failed to create post. Please try again.', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     }
   };
 
@@ -152,14 +235,30 @@ function MovieDetails() {
             />
             <Card.Body>
               <Button
-                variant={isSaved ? 'success' : 'primary'}
+                variant={isSaved ? 'outline-danger' : 'primary'}
                 className="w-100"
-                onClick={handleSaveMovie}
-                disabled={isSaved}
+                onClick={handleToggleSave}
               >
-                <FaBookmark className="me-2" />
-                {isSaved ? 'Saved' : 'Save Movie'}
+                {isSaved ? (
+                  <>
+                    <FaTimes className="me-2" />
+                    Remove from Saved
+                  </>
+                ) : (
+                  <>
+                    <FaBookmark className="me-2" />
+                    Save Movie
+                  </>
+                )}
               </Button>
+              {isSaved && (
+                <div className="text-center mt-2">
+                  <small className="text-success">
+                    <FaCheck className="me-1" />
+                    Saved to your collection
+                  </small>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>
@@ -172,11 +271,11 @@ function MovieDetails() {
               <div className="mb-3">
                 <Badge bg="primary" className="me-2">
                   <FaStar className="me-1" />
-                  {movie.vote_average?.toFixed(1)} / 10
+                  <span className="numeric-value">{movie.vote_average?.toFixed(1)}</span> / 10
                 </Badge>
                 <Badge bg="secondary">{movie.release_date?.split('-')[0]}</Badge>
                 {movie.runtime && (
-                  <Badge bg="secondary" className="ms-2">{movie.runtime} min</Badge>
+                  <Badge bg="secondary" className="ms-2"><span className="numeric-value">{movie.runtime}</span> min</Badge>
                 )}
               </div>
               {movie.genres && (
@@ -269,14 +368,19 @@ function MovieDetails() {
                   {localMovie.reviews.map((review, index) => (
                     <ListGroup.Item key={index}>
                       <div className="d-flex justify-content-between align-items-start mb-2">
-                        <strong>{review.author?.username}</strong>
+                        <Link
+                          to={`/profile/${review.author?._id}`}
+                          className="text-decoration-none"
+                        >
+                          <strong>{review.author?.username}</strong>
+                        </Link>
                         <Badge bg="warning" text="dark">
                           <FaStar /> {review.rating}/10
                         </Badge>
                       </div>
                       <p className="mb-0">{review.content}</p>
                       <small className="text-muted">
-                        {new Date(review.createdAt).toLocaleDateString()}
+                        {new Date(review.createdAt).toLocaleString()}
                       </small>
                     </ListGroup.Item>
                   ))}

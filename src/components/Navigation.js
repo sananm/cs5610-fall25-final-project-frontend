@@ -229,7 +229,7 @@ function Navigation() {
                     )}
                   </Dropdown.Toggle>
 
-                  <Dropdown.Menu align="end" style={{ width: '350px', maxHeight: '400px', overflowY: 'auto' }}>
+                  <Dropdown.Menu align="end" style={{ width: '350px' }}>
                     <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
                       <h6 className="mb-0">Notifications</h6>
                       {unreadCount > 0 && (
@@ -249,7 +249,7 @@ function Navigation() {
                         <p className="mb-0">No notifications yet</p>
                       </div>
                     ) : (
-                      notifications.map((notification) => (
+                      notifications.slice(0, 10).map((notification) => (
                         <Dropdown.Item
                           key={notification._id}
                           onClick={() => handleNotificationClick(notification)}
@@ -265,8 +265,7 @@ function Navigation() {
                             <div className="flex-grow-1">
                               <p className="mb-1 small">{notification.message}</p>
                               <small className="text-muted">
-                                {new Date(notification.createdAt).toLocaleDateString()} at{' '}
-                                {new Date(notification.createdAt).toLocaleTimeString()}
+                                {new Date(notification.createdAt).toLocaleString()}
                               </small>
                             </div>
                             {!notification.read && (

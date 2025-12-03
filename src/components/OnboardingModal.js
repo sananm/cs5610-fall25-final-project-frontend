@@ -401,13 +401,13 @@ function OnboardingModal({ show, onComplete }) {
   ];
 
   return (
-    <Modal show={show} onHide={() => {}} size="xl" backdrop="static" keyboard={false} centered>
+    <Modal show={show} onHide={() => {}} size="xl" backdrop="static" keyboard={false} centered scrollable>
       <Modal.Header>
         <Modal.Title>
           {currentStep === 1 ? 'Welcome! Tell us your preferences 🎬' : 'Select your favorite movies 🎬'}
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+      <Modal.Body>
         {currentStep === 1 ? (
           /* Step 1: Language and Genre Selection */
           <div>

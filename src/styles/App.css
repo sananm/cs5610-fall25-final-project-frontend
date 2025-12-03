@@ -658,3 +658,138 @@ body {
 [data-bs-theme="dark"] a.btn-primary * {
   color: #ffffff !important;
 }
+
+/* Hero Section Styling */
+.hero-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.hero-section .card-body {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+}
+
+.hero-section h1 {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section .lead {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.hero-section .text-muted {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-size: 1.1rem;
+}
+
+.hero-section .btn-primary {
+  background-color: white !important;
+  color: #667eea !important;
+  border: none !important;
+  font-weight: 600;
+  padding: 12px 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hero-section .btn-primary:hover {
+  background-color: #f8f9fa !important;
+  color: #5568d3 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section .btn-outline-primary {
+  border: 2px solid white !important;
+  color: white !important;
+  background-color: transparent !important;
+  font-weight: 600;
+  padding: 12px 32px;
+}
+
+.hero-section .btn-outline-primary:hover {
+  background-color: white !important;
+  color: #667eea !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode hero section */
+[data-bs-theme="dark"] .hero-section {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+[data-bs-theme="dark"] .hero-section .card-body {
+  background: linear-gradient(135deg, rgba(74, 85, 104, 0.95) 0%, rgba(45, 55, 72, 0.95) 100%);
+}
+
+[data-bs-theme="dark"] .hero-section .btn-primary {
+  background-color: #2d88ff !important;
+  color: white !important;
+}
+
+[data-bs-theme="dark"] .hero-section .btn-primary:hover {
+  background-color: #5ba3ff !important;
+  color: white !important;
+}
+
+[data-bs-theme="dark"] .hero-section .btn-outline-primary {
+  border-color: #2d88ff !important;
+  color: #2d88ff !important;
+}
+
+[data-bs-theme="dark"] .hero-section .btn-outline-primary:hover {
+  background-color: #2d88ff !important;
+  color: white !important;
+}
+
+/* Profile page dark mode fixes */
+[data-bs-theme="dark"] .profile-header {
+  background-color: #242526;
+}
+
+[data-bs-theme="dark"] .profile-cover {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+[data-bs-theme="dark"] .list-group-item a {
+  color: #e4e6eb !important;
+}
+
+[data-bs-theme="dark"] .list-group-item:hover {
+  background-color: #3a3b3c;
+}
+
+/* Dark mode form controls in modals */
+[data-bs-theme="dark"] .modal-body .form-control,
+[data-bs-theme="dark"] .modal-body .form-select {
+  background-color: #3a3b3c;
+  border-color: #4a4b4c;
+  color: #e4e6eb;
+}
+
+[data-bs-theme="dark"] .modal-body .form-control:focus,
+[data-bs-theme="dark"] .modal-body .form-select:focus {
+  background-color: #3a3b3c;
+  border-color: #2d88ff;
+  color: #e4e6eb;
+}
+
+[data-bs-theme="dark"] .modal-body .form-label {
+  color: #e4e6eb;
+}
+
+[data-bs-theme="dark"] .modal-body .form-text {
+  color: #b0b3b8 !important;
+}
+
+/* Numeric content right-alignment */
+.numeric-value {
+  text-align: right;
+  display: inline-block;
+  min-width: 30px;
+}
