@@ -624,3 +624,37 @@ body {
 [data-bs-theme="dark"] .modal-title {
   color: #e4e6eb;
 }
+
+/* Fix button text visibility in dark mode */
+[data-bs-theme="dark"] .btn-primary,
+[data-bs-theme="dark"] .btn-primary.w-100,
+[data-bs-theme="dark"] a.btn-primary {
+  background-color: #2d88ff !important;
+  border-color: #2d88ff !important;
+  color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .btn-primary:hover,
+[data-bs-theme="dark"] .btn-primary.w-100:hover,
+[data-bs-theme="dark"] a.btn-primary:hover {
+  background-color: #5ba3ff !important;
+  border-color: #5ba3ff !important;
+  color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .btn-primary:focus,
+[data-bs-theme="dark"] .btn-primary:active,
+[data-bs-theme="dark"] .btn-primary.w-100:focus,
+[data-bs-theme="dark"] .btn-primary.w-100:active,
+[data-bs-theme="dark"] a.btn-primary:focus,
+[data-bs-theme="dark"] a.btn-primary:active {
+  background-color: #2d88ff !important;
+  border-color: #2d88ff !important;
+  color: #ffffff !important;
+}
+
+/* Ensure button text is never transparent or inherits wrong color */
+[data-bs-theme="dark"] .btn-primary *,
+[data-bs-theme="dark"] a.btn-primary * {
+  color: #ffffff !important;
+}
