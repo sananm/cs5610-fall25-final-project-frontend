@@ -203,13 +203,13 @@ function Profile() {
                   profileUser.username}
                 </h2>
                 <p className="text-muted">@{profileUser.username}</p>
-                {profileUser.role && (
+                {profileUser.role && profileUser.role !== 'regular' && (
                   <span className={`badge ${
                     profileUser.role === 'admin' ? 'bg-danger' :
                     profileUser.role === 'moderator' ? 'bg-success' :
                     'bg-secondary'
                   }`}>
-                    {profileUser.role}
+                    {profileUser.role.toUpperCase()}
                   </span>
                 )}
               </div>

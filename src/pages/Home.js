@@ -218,7 +218,7 @@ function Home() {
           <Card.Body className="text-center py-5">
             <h1 className="display-4 fw-bold mb-3">
               <FaFilm className="me-3 text-primary" />
-              SocialConnect
+              ReelTalk
             </h1>
             <p className="lead mb-4">
               Connect with friends and discover amazing movies together
@@ -465,7 +465,7 @@ function Home() {
           {!isAuthenticated && (
             <Card className="mt-3">
               <Card.Body>
-                <h5>Join SocialConnect</h5>
+                <h5>Join ReelTalk</h5>
                 <p className="text-muted">Connect with friends and discover amazing movies!</p>
                 <Button as={Link} to="/register" variant="primary" className="w-100">
                   Sign Up

@@ -161,7 +161,7 @@ function Navigation() {
       <Container>
         <Navbar.Brand as={Link} to="/">
           <FaFilm className="me-2" />
-          SocialConnect
+          ReelTalk
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
