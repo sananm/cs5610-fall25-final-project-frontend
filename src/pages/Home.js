@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Alert, ListGroup, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Alert, ListGroup, Modal, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaHeart, FaComment, FaShare, FaFilm } from 'react-icons/fa';
+import { FaHeart, FaComment, FaShare, FaFilm, FaEllipsisV, FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { postAPI, movieAPI, commentAPI } from '../services/api';
 import OnboardingModal from '../components/OnboardingModal';
+
+// Custom Dropdown Toggle without caret
+const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
+  <span
+    ref={ref}
+    onClick={(e) => {
+      e.preventDefault();
+      onClick(e);
+    }}
+    style={{ cursor: 'pointer' }}
+    className="text-muted"
+  >
+    {children}
+  </span>
+));
 
 function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -20,6 +35,11 @@ function Home() {
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [selectedPostLikes, setSelectedPostLikes] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [deletingPost, setDeletingPost] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -206,6 +226,55 @@ function Home() {
     }
   };
 
+  const handleEditPost = (post) => {
+    setEditingPost(post);
+    setEditedContent(post.content);
+    setShowEditModal(true);
+  };
+
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+    if (!editedContent.trim()) {
+      setError('Post content cannot be empty');
+      return;
+    }
+
+    try {
+      await postAPI.updatePost(editingPost._id, { content: editedContent });
+      setShowEditModal(false);
+      setEditingPost(null);
+      setEditedContent('');
+      fetchData();
+    } catch (err) {
+      console.error('Error updating post:', err);
+      setError('Failed to update post');
+    }
+  };
+
+  const handleDeleteClick = (post) => {
+    setDeletingPost(post);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeletePost = async () => {
+    try {
+      await postAPI.deletePost(deletingPost._id);
+      setShowDeleteModal(false);
+      setDeletingPost(null);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setError('Failed to delete post');
+    }
+  };
+
+  const canModifyPost = (post) => {
+    if (!isAuthenticated || !user) return false;
+    return post.author?._id === user._id ||
+           user.role === 'admin' ||
+           user.role === 'moderator';
+  };
+
   const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
   return (
@@ -294,7 +363,7 @@ function Home() {
                           className="rounded-circle me-2"
                           style={{ width: '40px', height: '40px' }}
                         />
-                        <div>
+                        <div className="flex-grow-1">
                           <Link to={`/profile/${post.author?._id}`} className="text-decoration-none">
                             <strong>{post.author?.username}</strong>
                           </Link>
@@ -306,8 +375,26 @@ function Home() {
                           )}
                           <div className="text-muted small">
                             {new Date(post.createdAt).toLocaleString()}
+                            {post.isEdited && <span className="ms-1">(edited)</span>}
                           </div>
                         </div>
+                        {canModifyPost(post) && (
+                          <Dropdown align="end">
+                            <Dropdown.Toggle as={CustomToggle} id={`dropdown-${post._id}`}>
+                              <FaEllipsisV />
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu>
+                              <Dropdown.Item onClick={() => handleEditPost(post)}>
+                                <FaEdit className="me-2" />
+                                Edit
+                              </Dropdown.Item>
+                              <Dropdown.Item onClick={() => handleDeleteClick(post)} className="text-danger">
+                                <FaTrash className="me-2" />
+                                Delete
+                              </Dropdown.Item>
+                            </Dropdown.Menu>
+                          </Dropdown>
+                        )}
                       </div>
                       <p>{post.content}</p>
                       {post.movie && (
@@ -515,6 +602,60 @@ function Home() {
             </ListGroup>
           )}
         </Modal.Body>
+      </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleUpdatePost}>
+            <Form.Group>
+              <Form.Label>Post Content</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                placeholder="What's on your mind?"
+              />
+            </Form.Group>
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                Save Changes
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete this post? This action cannot be undone.</p>
+          {deletingPost && (
+            <Card className="bg-light">
+              <Card.Body>
+                <p className="mb-0 text-muted small">{deletingPost.content}</p>
+              </Card.Body>
+            </Card>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeletePost}>
+            Delete
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

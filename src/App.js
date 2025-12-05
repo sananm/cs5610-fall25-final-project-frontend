@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Navigation from './components/Navigation';
+import Footer from './components/Footer';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Pages
@@ -17,6 +18,7 @@ import Search from './pages/Search';
 import UserSearchPage from './pages/UserSearchPage';
 import MovieDetails from './pages/MovieDetails';
 import PostDetails from './pages/PostDetails';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -81,6 +83,7 @@ function AppContent() {
         <Route path="/users/search" element={<UserSearchPage />} />
         <Route path="/details/:tmdbId" element={<MovieDetails />} />
         <Route path="/posts/:postId" element={<PostDetails />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Protected routes */}
         <Route
@@ -99,6 +102,7 @@ function AppContent() {
         {/* 404 */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <Footer />
     </div>
   );
 }

@@ -40,10 +40,10 @@ function Login() {
               {error && <Alert variant="danger">{error}</Alert>}
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
+                  <Form.Label>Email or Username</Form.Label>
                   <Form.Control
-                    type="email"
-                    placeholder="Enter your email"
+                    type="text"
+                    placeholder="Enter your email or username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
