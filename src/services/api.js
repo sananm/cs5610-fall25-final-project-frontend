@@ -88,6 +88,7 @@ export const commentAPI = {
 export const movieAPI = {
   searchMovies: (query, page = 1) => api.get(`/movies/search/${query}?page=${page}`),
   getMovieFromTMDB: (tmdbId) => api.get(`/movies/tmdb/${tmdbId}`),
+  getMovieCredits: (tmdbId) => api.get(`/movies/tmdb/${tmdbId}/credits`),
   getPopularMovies: (page = 1) => api.get(`/movies/popular?page=${page}`),
   getTrendingMovies: () => api.get('/movies/trending'),
   discoverMovies: (language, genre, page = 1) => api.get(`/movies/discover?language=${language}&genre=${genre}&page=${page}`),

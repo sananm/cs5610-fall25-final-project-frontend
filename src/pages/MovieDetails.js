@@ -12,6 +12,7 @@ function MovieDetails() {
   const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [localMovie, setLocalMovie] = useState(null);
+  const [credits, setCredits] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -27,8 +28,14 @@ function MovieDetails() {
   const fetchMovieDetails = async () => {
     try {
       setLoading(true);
-      const tmdbRes = await movieAPI.getMovieFromTMDB(tmdbId);
+      // Fetch movie details and credits in parallel
+      const [tmdbRes, creditsRes] = await Promise.all([
+        movieAPI.getMovieFromTMDB(tmdbId),
+        movieAPI.getMovieCredits(tmdbId)
+      ]);
+
       setMovie(tmdbRes.data);
+      setCredits(creditsRes.data);
 
       // Try to fetch from local DB and check if user has saved it
       try {
@@ -289,6 +296,52 @@ function MovieDetails() {
               )}
               <h5>Overview</h5>
               <p>{movie.overview}</p>
+
+              {credits && (
+                <>
+                  {/* Director Section */}
+                  {credits.crew && credits.crew.find(person => person.job === 'Director') && (
+                    <div className="mb-3">
+                      <h6>Director</h6>
+                      <p className="mb-0">
+                        {credits.crew
+                          .filter(person => person.job === 'Director')
+                          .map(director => director.name)
+                          .join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Cast Section */}
+                  {credits.cast && credits.cast.length > 0 && (
+                    <div className="mb-3">
+                      <h6>Cast</h6>
+                      <div className="d-flex flex-wrap gap-2">
+                        {credits.cast.slice(0, 10).map((actor) => (
+                          <div key={actor.id} className="text-center" style={{ width: '80px' }}>
+                            <img
+                              src={
+                                actor.profile_path
+                                  ? `${IMAGE_BASE}/w185${actor.profile_path}`
+                                  : 'https://via.placeholder.com/80x120?text=No+Photo'
+                              }
+                              alt={actor.name}
+                              className="rounded mb-1"
+                              style={{ width: '80px', height: '120px', objectFit: 'cover' }}
+                            />
+                            <small className="d-block text-truncate" style={{ fontSize: '0.75rem' }}>
+                              <strong>{actor.name}</strong>
+                            </small>
+                            <small className="d-block text-muted text-truncate" style={{ fontSize: '0.7rem' }}>
+                              {actor.character}
+                            </small>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </Card.Body>
           </Card>
 
