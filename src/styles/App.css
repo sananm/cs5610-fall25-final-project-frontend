@@ -167,16 +167,49 @@ p {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 50%;
+  left: 10%;
+  right: 10%;
   width: 0;
   height: 2px;
   background: var(--primary);
-  transform: translateX(-50%);
+  margin: 0 auto;
   transition: width var(--transition-base);
 }
 
 .nav-link:hover::after {
   width: 80%;
+}
+
+/* User Dropdown - Replace arrow with bar */
+.navbar .nav-link.dropdown-toggle::after {
+  display: none !important;
+}
+
+.navbar .nav-link.dropdown-toggle {
+  position: relative;
+  padding-bottom: 0.75rem !important;
+}
+
+.navbar .nav-link.dropdown-toggle::before {
+  content: '';
+  position: absolute;
+  bottom: 0.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width var(--transition-base);
+}
+
+.navbar .nav-link.dropdown-toggle:hover::before,
+.navbar .nav-link.dropdown-toggle.show::before {
+  width: 80%;
+}
+
+[data-bs-theme="dark"] .navbar .nav-link.dropdown-toggle::before {
+  background: #818cf8;
 }
 
 /* ========== MAIN CONTENT ========== */
@@ -487,6 +520,8 @@ p {
 .profile-info {
   padding: 0 2rem 2rem;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .profile-picture {
@@ -494,10 +529,11 @@ p {
   height: 160px;
   border-radius: var(--radius-full);
   border: 6px solid var(--white);
-  position: absolute;
-  top: -80px;
+  margin-top: -80px;
+  align-self: flex-start;
   box-shadow: var(--shadow-2xl);
   transition: all var(--transition-base);
+  object-fit: cover;
 }
 
 .profile-picture:hover {
@@ -506,7 +542,8 @@ p {
 }
 
 .profile-details {
-  margin-top: 90px;
+  margin-top: 1rem;
+  width: 100%;
 }
 
 /* ========== COMMENTS - MODERN BUBBLES ========== */
@@ -827,11 +864,11 @@ p {
   .profile-picture {
     width: 120px;
     height: 120px;
-    top: -60px;
+    margin-top: -60px;
   }
 
   .profile-details {
-    margin-top: 65px;
+    margin-top: 1rem;
   }
 
   .profile-cover {
@@ -1438,6 +1475,92 @@ footer {
     box-shadow: none !important;
     border: 1px solid #000 !important;
   }
+}
+
+/* ========== CUSTOM UNFOLLOW BUTTON ========== */
+.btn-unfollow {
+  border: 2px solid #764ba2 !important;
+  color: #764ba2 !important;
+  background: transparent !important;
+  transition: all var(--transition-base) !important;
+}
+
+.btn-unfollow:hover {
+  background: var(--gradient-primary) !important;
+  color: var(--white) !important;
+  border: 2px solid #667eea !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(118, 75, 162, 0.4) !important;
+}
+
+.btn-unfollow:active {
+  transform: translateY(0);
+}
+
+[data-bs-theme="dark"] .btn-unfollow {
+  border-color: #a78bfa !important;
+  color: #c4b5fd !important;
+  background: rgba(167, 139, 250, 0.05) !important;
+}
+
+[data-bs-theme="dark"] .btn-unfollow:hover {
+  background: linear-gradient(135deg, #a5b4fc 0%, #c7d2fe 100%) !important;
+  border: 2px solid #a5b4fc !important;
+  color: #0f172a !important;
+  box-shadow: 0 6px 20px rgba(165, 180, 252, 0.6) !important;
+}
+
+/* ========== TOAST NOTIFICATIONS - DARK MODE ========== */
+[data-bs-theme="dark"] .Toastify__toast {
+  background: var(--dark-surface);
+  color: var(--dark-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-bs-theme="dark"] .Toastify__toast--info {
+  background: var(--dark-surface);
+}
+
+[data-bs-theme="dark"] .Toastify__toast--success {
+  background: var(--dark-surface);
+}
+
+[data-bs-theme="dark"] .Toastify__toast--warning {
+  background: var(--dark-surface);
+}
+
+[data-bs-theme="dark"] .Toastify__toast--error {
+  background: var(--dark-surface);
+}
+
+[data-bs-theme="dark"] .Toastify__progress-bar {
+  background: #818cf8;
+}
+
+[data-bs-theme="dark"] .Toastify__progress-bar--info {
+  background: #60a5fa;
+}
+
+[data-bs-theme="dark"] .Toastify__progress-bar--success {
+  background: #34d399;
+}
+
+[data-bs-theme="dark"] .Toastify__progress-bar--warning {
+  background: #fbbf24;
+}
+
+[data-bs-theme="dark"] .Toastify__progress-bar--error {
+  background: #f87171;
+}
+
+[data-bs-theme="dark"] .Toastify__close-button {
+  color: var(--dark-text-secondary);
+  opacity: 0.7;
+}
+
+[data-bs-theme="dark"] .Toastify__close-button:hover {
+  opacity: 1;
+  color: var(--dark-text);
 }
 
 /* ========== END OF ULTRA MODERN UI SYSTEM ========== */

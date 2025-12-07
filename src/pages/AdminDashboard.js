@@ -223,7 +223,7 @@ function AdminDashboard() {
                     <td>
                       <div className="d-flex align-items-center">
                         <img
-                          src={userItem.profilePicture || 'https://via.placeholder.com/40'}
+                          src={userItem.profilePicture || "/default-avatar.png"}
                           alt={userItem.username}
                           className="rounded-circle me-2"
                           style={{ width: '40px', height: '40px', objectFit: 'cover' }}

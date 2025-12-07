@@ -45,8 +45,10 @@ function Profile() {
   const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
   useEffect(() => {
+    console.log('useEffect triggered - userId:', userId, 'currentUser:', currentUser?._id);
     fetchProfile();
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentUser]);
 
   const fetchProfile = async () => {
     try {
@@ -66,11 +68,30 @@ function Profile() {
         movieAPI.getUserMovies(targetUserId).catch(() => ({ data: [] }))
       ]);
 
+      console.log('=== Profile Data ===');
+      console.log('User response:', userRes.data);
+      console.log('Followers response:', followersRes.data);
+      console.log('Current user:', currentUser);
+
       setProfileUser(userRes.data);
-      setPosts(postsRes.data.posts || []);
+      const loadedPosts = postsRes.data.posts || [];
+      setPosts(loadedPosts);
       setFollowers(followersRes.data || []);
       setFollowing(followingRes.data || []);
       setSavedMovies(savedMoviesRes.data || []);
+
+      // Fetch actual comment counts for all posts to ensure accuracy
+      loadedPosts.forEach(async (post) => {
+        try {
+          const commentsRes = await commentAPI.getComments(post._id);
+          setComments(prev => ({
+            ...prev,
+            [post._id]: commentsRes.data || []
+          }));
+        } catch (err) {
+          console.error('Error fetching comments for post:', post._id, err);
+        }
+      });
 
       // Initialize edit form with current user data
       if (isOwnProfile && userRes.data) {
@@ -86,8 +107,23 @@ function Profile() {
         });
       }
 
-      if (currentUser && userRes.data.followers) {
-        setIsFollowing(userRes.data.followers.some(f => f._id === currentUser._id));
+      // Check if current user is following this profile
+      console.log('Checking follow status...');
+      console.log('followersRes.data:', followersRes.data);
+
+      if (currentUser && followersRes.data) {
+        console.log('Current user ID:', currentUser._id);
+        console.log('Followers list:', followersRes.data);
+        console.log('Followers IDs:', followersRes.data.map(f => f._id));
+        const isFollowingCheck = followersRes.data.some(f => {
+          console.log(`Comparing follower ${f._id} with current user ${currentUser._id}: ${f._id === currentUser._id}`);
+          return f._id === currentUser._id;
+        });
+        console.log('Is following check result:', isFollowingCheck);
+        console.log('Setting isFollowing to:', isFollowingCheck);
+        setIsFollowing(isFollowingCheck);
+      } else {
+        console.log('Skipping follow check - currentUser:', !!currentUser, 'followersRes.data:', !!followersRes.data);
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -155,26 +191,60 @@ function Profile() {
   const handleFollowToggle = async () => {
     if (!isAuthenticated) return;
 
+    const previousFollowState = isFollowing;
+    const newFollowState = !isFollowing;
+    console.log('Toggling follow - Current:', previousFollowState, '-> New:', newFollowState);
+
+    // Optimistically update the UI immediately
+    setIsFollowing(newFollowState);
+
     try {
-      if (isFollowing) {
+      if (!newFollowState) {
+        // Unfollowing
+        console.log('Calling unfollowUser API...');
         await userAPI.unfollowUser(profileUser._id);
+        setFollowers(followers.filter(f => f._id !== currentUser._id));
+        console.log('Successfully unfollowed');
       } else {
+        // Following
+        console.log('Calling followUser API...');
         await userAPI.followUser(profileUser._id);
+        setFollowers([...followers, currentUser]);
+        console.log('Successfully followed');
       }
-      setIsFollowing(!isFollowing);
-      fetchProfile();
     } catch (err) {
       console.error('Error toggling follow:', err);
+      console.error('API Error details:', err.response?.data);
+      console.error('Error message:', err.response?.data?.message);
+      alert(`Error: ${err.response?.data?.message || 'Failed to toggle follow'}`);
+      // Revert to previous state on error
+      setIsFollowing(previousFollowState);
     }
   };
 
   const handleLike = async (postId) => {
     if (!isAuthenticated) return;
 
+    // Update UI immediately (optimistic update)
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post._id === postId) {
+        const isLiked = post.likes?.includes(currentUser._id);
+        return {
+          ...post,
+          likes: isLiked
+            ? post.likes.filter(id => id !== currentUser._id)
+            : [...(post.likes || []), currentUser._id]
+        };
+      }
+      return post;
+    }));
+
     try {
       await postAPI.toggleLike(postId);
-      // Update local state
-      setPosts(posts.map(post => {
+    } catch (err) {
+      console.error('Error liking post:', err);
+      // Revert on error
+      setPosts(prevPosts => prevPosts.map(post => {
         if (post._id === postId) {
           const isLiked = post.likes?.includes(currentUser._id);
           return {
@@ -186,8 +256,6 @@ function Profile() {
         }
         return post;
       }));
-    } catch (err) {
-      console.error('Error liking post:', err);
     }
   };
 
@@ -214,23 +282,81 @@ function Profile() {
     e.preventDefault();
     if (!isAuthenticated || !newComment[postId]?.trim()) return;
 
+    const commentContent = newComment[postId];
+
+    // Create optimistic comment object
+    const optimisticComment = {
+      _id: `temp-${Date.now()}`,
+      content: commentContent,
+      author: currentUser,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true
+    };
+
+    // Ensure loading is false
+    setLoadingComments(prev => ({ ...prev, [postId]: false }));
+
+    // Add comment to UI immediately
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: [...(prevComments[postId] || []), optimisticComment]
+    }));
+
+    // Clear input immediately
+    setNewComment(prev => ({ ...prev, [postId]: '' }));
+
     try {
+      // Update comment count immediately
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const currentComments = post.comments || [];
+          return { ...post, comments: [...currentComments, optimisticComment._id] };
+        }
+        return post;
+      }));
+
       const response = await commentAPI.createComment(postId, {
-        content: newComment[postId]
+        content: commentContent
       });
-      setComments({
-        ...comments,
-        [postId]: [...(comments[postId] || []), response.data]
-      });
-      setNewComment({ ...newComment, [postId]: '' });
-      // Update comment count
-      setPosts(posts.map(post =>
-        post._id === postId
-          ? { ...post, comments: [...(post.comments || []), response.data._id] }
-          : post
-      ));
+
+      // Replace optimistic comment with real one from server
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: (prevComments[postId] || []).map(comment =>
+          comment._id === optimisticComment._id ? response.data : comment
+        )
+      }));
+
+      // Update with real comment ID in posts
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: post.comments.map(id =>
+              id === optimisticComment._id ? response.data._id : id
+            )
+          };
+        }
+        return post;
+      }));
     } catch (err) {
       console.error('Error adding comment:', err);
+      // Remove optimistic comment on error
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: (prevComments[postId] || []).filter(comment => comment._id !== optimisticComment._id)
+      }));
+      // Revert comment count
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: post.comments.filter(id => id !== optimisticComment._id)
+          };
+        }
+        return post;
+      }));
+      alert('Failed to post comment. Please try again.');
     }
   };
 
@@ -309,7 +435,7 @@ function Profile() {
         ></div>
         <div className="profile-info">
           <img
-            src={profileUser.profilePicture || 'https://via.placeholder.com/150'}
+            src={profileUser.profilePicture || "/default-avatar.png"}
             alt={profileUser.username}
             className="profile-picture"
           />
@@ -332,13 +458,18 @@ function Profile() {
                 )}
               </div>
               <div>
+                {(() => {
+                  console.log('Rendering button - isOwnProfile:', isOwnProfile, 'isAuthenticated:', isAuthenticated, 'isFollowing:', isFollowing);
+                  return null;
+                })()}
                 {isOwnProfile ? (
                   <Button variant="primary" onClick={handleEditProfile}>
                     <FaEdit className="me-1" /> Edit Profile
                   </Button>
                 ) : isAuthenticated && (
                   <Button
-                    variant={isFollowing ? 'outline-secondary' : 'primary'}
+                    variant="primary"
+                    className={isFollowing ? 'btn-unfollow' : ''}
                     onClick={handleFollowToggle}
                   >
                     {isFollowing ? (
@@ -381,7 +512,7 @@ function Profile() {
                     <Card.Body>
                       <div className="d-flex align-items-center mb-2">
                         <img
-                          src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                          src={post.author?.profilePicture || "/default-avatar.png"}
                           alt={post.author?.username}
                           className="rounded-circle me-2"
                           style={{ width: '40px', height: '40px' }}
@@ -486,7 +617,7 @@ function Profile() {
                           className="text-decoration-none text-muted"
                         >
                           <FaComment />
-                          <span className="ms-1">{post.comments?.length || 0}</span>
+                          <span className="ms-1">{comments[post._id]?.length || post.comments?.length || 0}</span>
                         </Button>
                       </div>
 
@@ -528,7 +659,7 @@ function Profile() {
                                 <ListGroup.Item key={comment._id} className="px-0 border-0">
                                   <div className="d-flex">
                                     <img
-                                      src={comment.author?.profilePicture || 'https://via.placeholder.com/32'}
+                                      src={comment.author?.profilePicture || "/default-avatar.png"}
                                       alt={comment.author?.username}
                                       className="rounded-circle me-2"
                                       style={{ width: '32px', height: '32px' }}
@@ -573,7 +704,7 @@ function Profile() {
                       <ListGroup.Item key={follower._id} as={Link} to={`/profile/${follower._id}`}>
                         <div className="d-flex align-items-center">
                           <img
-                            src={follower.profilePicture || 'https://via.placeholder.com/40'}
+                            src={follower.profilePicture || "/default-avatar.png"}
                             alt={follower.username}
                             className="rounded-circle me-2"
                             style={{ width: '40px', height: '40px' }}
@@ -604,7 +735,7 @@ function Profile() {
                       <ListGroup.Item key={followedUser._id} as={Link} to={`/profile/${followedUser._id}`}>
                         <div className="d-flex align-items-center">
                           <img
-                            src={followedUser.profilePicture || 'https://via.placeholder.com/40'}
+                            src={followedUser.profilePicture || "/default-avatar.png"}
                             alt={followedUser.username}
                             className="rounded-circle me-2"
                             style={{ width: '40px', height: '40px' }}
@@ -837,7 +968,7 @@ function Profile() {
                 >
                   <div className="d-flex align-items-center">
                     <img
-                      src={user.profilePicture || 'https://via.placeholder.com/40'}
+                      src={user.profilePicture || "/default-avatar.png"}
                       alt={user.username}
                       className="rounded-circle me-2"
                       style={{ width: '40px', height: '40px', objectFit: 'cover' }}
@@ -867,7 +998,7 @@ function Profile() {
               <Card.Body>
                 <div className="d-flex align-items-start mb-2">
                   <img
-                    src={reportingPost.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    src={reportingPost.author?.profilePicture || "/default-avatar.png"}
                     alt={reportingPost.author?.username}
                     className="rounded-circle me-2"
                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}

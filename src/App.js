@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Pages
@@ -60,6 +61,7 @@ function AppContent() {
 
   return (
     <div className="App">
+      <ScrollToTop />
       <ToastContainer
         position="bottom-right"
         autoClose={5000}

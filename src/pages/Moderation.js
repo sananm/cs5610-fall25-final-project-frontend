@@ -112,7 +112,7 @@ function Moderation() {
                   {/* Post Author Info */}
                   <div className="d-flex align-items-center mb-2">
                     <img
-                      src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                      src={post.author?.profilePicture || "/default-avatar.png"}
                       alt={post.author?.username}
                       className="rounded-circle me-2"
                       style={{ width: '40px', height: '40px', objectFit: 'cover' }}
@@ -172,7 +172,7 @@ function Moderation() {
                               <img
                                 src={post.movie.posterPath ?
                                   `${IMAGE_BASE}${post.movie.posterPath}` :
-                                  'https://via.placeholder.com/50x75?text=No+Image'
+                                  'https://via.placeholder.com/50x75?text=No+Poster'
                                 }
                                 alt={post.movie.title}
                                 style={{ width: '50px', height: '75px', borderRadius: '4px' }}

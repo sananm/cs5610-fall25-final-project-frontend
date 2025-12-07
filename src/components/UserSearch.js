@@ -127,7 +127,7 @@ function UserSearch({ initialQuery = '' }) {
                     className="text-decoration-none d-flex align-items-center flex-grow-1"
                   >
                     <img
-                      src={user.profilePicture || 'https://via.placeholder.com/50'}
+                      src={user.profilePicture || "/default-avatar.png"}
                       alt={user.username}
                       className="rounded-circle me-3"
                       style={{ width: '50px', height: '50px', objectFit: 'cover' }}

@@ -22,6 +22,10 @@ function MovieDetails() {
   const IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tmdbId]);
+
+  useEffect(() => {
     fetchMovieDetails();
   }, [tmdbId, user]);
 

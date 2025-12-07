@@ -68,7 +68,21 @@ function Home() {
     try {
       setLoading(true);
       const postsRes = await (isAuthenticated ? postAPI.getFeed() : postAPI.getAllPosts());
-      setPosts(postsRes.data.posts || []);
+      const loadedPosts = postsRes.data.posts || [];
+      setPosts(loadedPosts);
+
+      // Fetch actual comment counts for all posts to ensure accuracy
+      loadedPosts.forEach(async (post) => {
+        try {
+          const commentsRes = await commentAPI.getComments(post._id);
+          setComments(prev => ({
+            ...prev,
+            [post._id]: commentsRes.data || []
+          }));
+        } catch (err) {
+          console.error('Error fetching comments for post:', post._id, err);
+        }
+      });
 
       // Fetch movies based on user preferences or generic trending
       if (isAuthenticated && user?.preferredGenres && user.preferredGenres.length > 0) {
@@ -162,11 +176,38 @@ function Home() {
       setError('Please login to like posts');
       return;
     }
+
+    // Update UI immediately (optimistic update)
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post._id === postId) {
+        const isLiked = post.likes?.includes(user._id);
+        return {
+          ...post,
+          likes: isLiked
+            ? post.likes.filter(id => id !== user._id)
+            : [...(post.likes || []), user._id]
+        };
+      }
+      return post;
+    }));
+
     try {
       await postAPI.toggleLike(postId);
-      fetchData();
     } catch (err) {
       console.error('Error liking post:', err);
+      // Revert on error
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const isLiked = post.likes?.includes(user._id);
+          return {
+            ...post,
+            likes: isLiked
+              ? post.likes.filter(id => id !== user._id)
+              : [...(post.likes || []), user._id]
+          };
+        }
+        return post;
+      }));
     }
   };
 
@@ -202,15 +243,79 @@ function Home() {
     e.preventDefault();
     if (!newComment[postId]?.trim() || !isAuthenticated) return;
 
+    const commentContent = newComment[postId];
+
+    // Create optimistic comment object
+    const optimisticComment = {
+      _id: `temp-${Date.now()}`,
+      content: commentContent,
+      author: user,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true
+    };
+
+    // Ensure loading is false
+    setLoadingComments(prev => ({ ...prev, [postId]: false }));
+
+    // Add comment to UI immediately
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: [...(prevComments[postId] || []), optimisticComment]
+    }));
+
+    // Clear input immediately
+    setNewComment(prev => ({ ...prev, [postId]: '' }));
+
     try {
-      await commentAPI.createComment(postId, { content: newComment[postId] });
-      setNewComment({ ...newComment, [postId]: '' });
-      await fetchComments(postId);
-      // Update post comment count
-      fetchData();
+      // Update post comment count immediately
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const currentComments = post.comments || [];
+          return { ...post, comments: [...currentComments, optimisticComment._id] };
+        }
+        return post;
+      }));
+
+      const response = await commentAPI.createComment(postId, { content: commentContent });
+
+      // Replace optimistic comment with real one from server
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: (prevComments[postId] || []).map(comment =>
+          comment._id === optimisticComment._id ? response.data : comment
+        )
+      }));
+
+      // Update with real comment ID
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: post.comments.map(id =>
+              id === optimisticComment._id ? response.data._id : id
+            )
+          };
+        }
+        return post;
+      }));
     } catch (err) {
       console.error('Error adding comment:', err);
       setError('Failed to add comment');
+      // Remove optimistic comment on error
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: (prevComments[postId] || []).filter(comment => comment._id !== optimisticComment._id)
+      }));
+      // Revert comment count
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: post.comments.filter(id => id !== optimisticComment._id)
+          };
+        }
+        return post;
+      }));
     }
   };
 
@@ -329,7 +434,7 @@ function Home() {
       <Row>
         <Col lg={8}>
           <h2 className="mb-4">
-            {isAuthenticated ? `Welcome back, ${user?.username}!` : 'Latest Posts'}
+            {isAuthenticated ? `Welcome back, ${user?.firstName || user?.username}!` : 'Latest Posts'}
           </h2>
 
           {isAuthenticated && (
@@ -377,7 +482,7 @@ function Home() {
                     <Card.Body>
                       <div className="d-flex align-items-center mb-3">
                         <img
-                          src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                          src={post.author?.profilePicture || "/default-avatar.png"}
                           alt={post.author?.username}
                           className="rounded-circle me-2"
                           style={{ width: '40px', height: '40px' }}
@@ -486,7 +591,7 @@ function Home() {
                           className="text-decoration-none text-muted"
                         >
                           <FaComment />
-                          <span className="ms-1">{post.comments?.length || 0}</span>
+                          <span className="ms-1">{comments[post._id]?.length || post.comments?.length || 0}</span>
                         </Button>
                       </div>
 
@@ -528,7 +633,7 @@ function Home() {
                                 <ListGroup.Item key={comment._id} className="px-0 border-0">
                                   <div className="d-flex">
                                     <img
-                                      src={comment.author?.profilePicture || 'https://via.placeholder.com/32'}
+                                      src={comment.author?.profilePicture || "/default-avatar.png"}
                                       alt={comment.author?.username}
                                       className="rounded-circle me-2"
                                       style={{ width: '32px', height: '32px' }}
@@ -622,7 +727,7 @@ function Home() {
                 <ListGroup.Item key={likedUser._id} className="px-0">
                   <div className="d-flex align-items-center">
                     <img
-                      src={likedUser.profilePicture || 'https://via.placeholder.com/40'}
+                      src={likedUser.profilePicture || "/default-avatar.png"}
                       alt={likedUser.username}
                       className="rounded-circle me-2"
                       style={{ width: '40px', height: '40px' }}
@@ -719,7 +824,7 @@ function Home() {
               <Card.Body>
                 <div className="d-flex align-items-start mb-2">
                   <img
-                    src={reportingPost.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    src={reportingPost.author?.profilePicture || "/default-avatar.png"}
                     alt={reportingPost.author?.username}
                     className="rounded-circle me-2"
                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}

@@ -155,7 +155,7 @@ function PostDetails() {
         <Card.Body>
           <div className="d-flex align-items-center mb-3">
             <img
-              src={post.author?.profilePicture || 'https://via.placeholder.com/50'}
+              src={post.author?.profilePicture || "/default-avatar.png"}
               alt={post.author?.username}
               className="rounded-circle me-2"
               style={{ width: '50px', height: '50px' }}
@@ -245,7 +245,7 @@ function PostDetails() {
                 <ListGroup.Item key={comment._id} className="px-0">
                   <div className="d-flex">
                     <img
-                      src={comment.author?.profilePicture || 'https://via.placeholder.com/32'}
+                      src={comment.author?.profilePicture || "/default-avatar.png"}
                       alt={comment.author?.username}
                       className="rounded-circle me-2"
                       style={{ width: '32px', height: '32px' }}
@@ -339,7 +339,7 @@ function PostDetails() {
               <Card.Body>
                 <div className="d-flex align-items-start mb-2">
                   <img
-                    src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    src={post.author?.profilePicture || "/default-avatar.png"}
                     alt={post.author?.username}
                     className="rounded-circle me-2"
                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}

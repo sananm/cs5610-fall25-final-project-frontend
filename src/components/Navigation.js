@@ -82,7 +82,7 @@ function Navigation() {
           toast.info(
             <div className="d-flex align-items-center">
               <img
-                src={latestNotif.sender?.profilePicture || 'https://via.placeholder.com/40'}
+                src={latestNotif.sender?.profilePicture || "/default-avatar.png"}
                 alt={latestNotif.sender?.username}
                 className="rounded-circle me-2"
                 style={{ width: '32px', height: '32px' }}
@@ -257,7 +257,7 @@ function Navigation() {
                         >
                           <div className="d-flex align-items-start">
                             <img
-                              src={notification.sender?.profilePicture || 'https://via.placeholder.com/40'}
+                              src={notification.sender?.profilePicture || "/default-avatar.png"}
                               alt={notification.sender?.username}
                               className="rounded-circle me-2"
                               style={{ width: '40px', height: '40px' }}
