@@ -1,1 +1,1 @@
-# cs5610-fall25-final-project
+# cs5610-fall25-final-project-frontend
