@@ -33,6 +33,7 @@ function Navigation() {
   };
 
   const handleLogout = async () => {
+    toast.dismiss(); // Dismiss all active toasts
     await logout();
     navigate('/');
   };
