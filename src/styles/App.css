@@ -151,7 +151,18 @@ p {
   }
 
   .navbar-collapse form {
-    justify-content: center !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .navbar-collapse form .dropdown,
+  .navbar-collapse form .form-control,
+  .navbar-collapse form button {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0.5rem 0 !important;
   }
 
   .navbar-collapse .nav-link,
@@ -159,6 +170,10 @@ p {
   .navbar-collapse button {
     width: 100%;
     text-align: center;
+  }
+
+  .navbar-collapse .dropdown-toggle {
+    width: 100% !important;
   }
 }
 
