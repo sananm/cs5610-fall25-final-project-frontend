@@ -59,6 +59,10 @@ export const userAPI = {
   getFollowing: (userId) => api.get(`/users/${userId}/following`),
   searchUsers: (query) => api.get(`/users/search/${query}`),
   getUserPosts: (userId, page = 1) => api.get(`/users/${userId}/posts?page=${page}`),
+  // Admin-only
+  getAllUsersAdmin: () => api.get('/users/admin/all'),
+  updateUserRole: (userId, role) => api.put(`/users/${userId}/role`, { role }),
+  deleteUser: (userId) => api.delete(`/users/${userId}/delete`),
 };
 
 // Post API

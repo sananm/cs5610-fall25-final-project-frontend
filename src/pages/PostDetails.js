@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Button, Form, ListGroup, Modal, Dropdown, Alert } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { FaHeart, FaReply, FaEllipsisV, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaHeart, FaReply, FaEllipsisV, FaEdit, FaTrash, FaFlag } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { postAPI, commentAPI } from '../services/api';
 
@@ -31,6 +31,7 @@ function PostDetails() {
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [editedContent, setEditedContent] = useState('');
 
   useEffect(() => {
@@ -110,6 +111,17 @@ function PostDetails() {
     }
   };
 
+  const handleReportPost = async () => {
+    try {
+      await postAPI.reportPost(postId);
+      setShowReportModal(false);
+      setError('Post reported successfully. Our moderation team will review it.');
+    } catch (err) {
+      console.error('Error reporting post:', err);
+      setError('Failed to report post');
+    }
+  };
+
   const canModifyPost = () => {
     if (!isAuthenticated || !user || !post) return false;
     return post.author?._id === user._id ||
@@ -157,20 +169,29 @@ function PostDetails() {
                 {post.isEdited && <span className="ms-1">(edited)</span>}
               </div>
             </div>
-            {canModifyPost() && (
+            {isAuthenticated && (
               <Dropdown align="end">
                 <Dropdown.Toggle as={CustomToggle} id="dropdown-post">
                   <FaEllipsisV />
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={handleEditPost}>
-                    <FaEdit className="me-2" />
-                    Edit
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => setShowDeleteModal(true)} className="text-danger">
-                    <FaTrash className="me-2" />
-                    Delete
-                  </Dropdown.Item>
+                  {canModifyPost() ? (
+                    <>
+                      <Dropdown.Item onClick={handleEditPost}>
+                        <FaEdit className="me-2" />
+                        Edit
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => setShowDeleteModal(true)} className="text-danger">
+                        <FaTrash className="me-2" />
+                        Delete
+                      </Dropdown.Item>
+                    </>
+                  ) : (
+                    <Dropdown.Item onClick={() => setShowReportModal(true)} className="text-warning">
+                      <FaFlag className="me-2" />
+                      Report Post
+                    </Dropdown.Item>
+                  )}
                 </Dropdown.Menu>
               </Dropdown>
             )}
@@ -298,6 +319,49 @@ function PostDetails() {
           </Button>
           <Button variant="danger" onClick={handleDeletePost}>
             Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal show={showReportModal} onHide={() => setShowReportModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Report Post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <FaFlag className="me-2" />
+            <strong>Report this post to moderators</strong>
+          </Alert>
+          <p>This post will be flagged for review by our moderation team. If it violates our community guidelines, appropriate action will be taken.</p>
+          {post && (
+            <Card className="bg-light">
+              <Card.Body>
+                <div className="d-flex align-items-start mb-2">
+                  <img
+                    src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    alt={post.author?.username}
+                    className="rounded-circle me-2"
+                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <strong className="small">{post.author?.username}</strong>
+                    <p className="mb-0 text-muted small mt-1">{post.content}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+          <p className="text-muted small mt-3 mb-0">
+            <strong>Note:</strong> False reports may result in action against your account.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={handleReportPost}>
+            <FaFlag className="me-1" /> Report Post
           </Button>
         </Modal.Footer>
       </Modal>

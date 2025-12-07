@@ -33,13 +33,18 @@ function UserSearch({ initialQuery = '' }) {
       // Initialize following status by checking if user is in current user's following list
       if (isAuthenticated && currentUser) {
         const status = {};
-        // We need to fetch current user's following list to properly check
         try {
-          const meResponse = await userAPI.getUserById(currentUser._id);
-          const following = meResponse.data.following || [];
+          // Fetch current user's following list using the dedicated endpoint
+          const followingResponse = await userAPI.getFollowing(currentUser._id);
+          const following = followingResponse.data || [];
+
+          // Check each search result user against the following list
           response.data.forEach(user => {
-            status[user._id] = following.some(f => f._id === user._id || f === user._id);
+            // The following list contains user objects with _id
+            const isFollowing = following.some(f => f._id === user._id);
+            status[user._id] = isFollowing;
           });
+
           setFollowingStatus(status);
         } catch (err) {
           console.error('Error fetching user following status:', err);
@@ -71,15 +76,31 @@ function UserSearch({ initialQuery = '' }) {
         await userAPI.followUser(userId);
       }
 
+      // Update following status
       setFollowingStatus({
         ...followingStatus,
         [userId]: !isFollowing
       });
 
-      // Refresh search to get updated follower counts
-      handleSearch({ preventDefault: () => {} });
+      // Update the follower count in the users list
+      setUsers(users.map(user => {
+        if (user._id === userId) {
+          return {
+            ...user,
+            followersCount: isFollowing
+              ? (user.followersCount || 1) - 1
+              : (user.followersCount || 0) + 1
+          };
+        }
+        return user;
+      }));
     } catch (err) {
       console.error('Error toggling follow:', err);
+      // Revert the state on error
+      setFollowingStatus({
+        ...followingStatus,
+        [userId]: followingStatus[userId]
+      });
     }
   };
 

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Tab, Tabs, ListGroup, Modal, Form, Alert } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { userAPI, postAPI, movieAPI, authAPI } from '../services/api';
-import { FaUserPlus, FaUserMinus, FaEdit, FaStar } from 'react-icons/fa';
+import { userAPI, postAPI, movieAPI, authAPI, commentAPI } from '../services/api';
+import { FaUserPlus, FaUserMinus, FaEdit, FaStar, FaHeart, FaComment, FaFlag, FaEllipsisV, FaTrash } from 'react-icons/fa';
 
 function Profile() {
   const { userId } = useParams();
@@ -24,11 +24,22 @@ function Profile() {
     bio: '',
     location: '',
     website: '',
+    phone: '',
     profilePicture: '',
     coverPhoto: ''
   });
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
+
+  // Post interaction states
+  const [expandedComments, setExpandedComments] = useState({});
+  const [comments, setComments] = useState({});
+  const [newComment, setNewComment] = useState({});
+  const [loadingComments, setLoadingComments] = useState({});
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [selectedPostLikes, setSelectedPostLikes] = useState([]);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingPost, setReportingPost] = useState(null);
 
   const isOwnProfile = !userId || (currentUser && userId === currentUser._id);
   const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
@@ -69,6 +80,7 @@ function Profile() {
           bio: userRes.data.bio || '',
           location: userRes.data.location || '',
           website: userRes.data.website || '',
+          phone: userRes.data.phone || '',
           profilePicture: userRes.data.profilePicture || '',
           coverPhoto: userRes.data.coverPhoto || ''
         });
@@ -117,6 +129,7 @@ function Profile() {
           bio: response.data.bio || '',
           location: response.data.location || '',
           website: response.data.website || '',
+          phone: response.data.phone || '',
           profilePicture: response.data.profilePicture || '',
           coverPhoto: response.data.coverPhoto || ''
         });
@@ -153,6 +166,111 @@ function Profile() {
     } catch (err) {
       console.error('Error toggling follow:', err);
     }
+  };
+
+  const handleLike = async (postId) => {
+    if (!isAuthenticated) return;
+
+    try {
+      await postAPI.toggleLike(postId);
+      // Update local state
+      setPosts(posts.map(post => {
+        if (post._id === postId) {
+          const isLiked = post.likes?.includes(currentUser._id);
+          return {
+            ...post,
+            likes: isLiked
+              ? post.likes.filter(id => id !== currentUser._id)
+              : [...(post.likes || []), currentUser._id]
+          };
+        }
+        return post;
+      }));
+    } catch (err) {
+      console.error('Error liking post:', err);
+    }
+  };
+
+  const toggleComments = async (postId) => {
+    if (!expandedComments[postId]) {
+      // Load comments if not loaded
+      try {
+        setLoadingComments({ ...loadingComments, [postId]: true });
+        const response = await commentAPI.getComments(postId);
+        setComments({ ...comments, [postId]: response.data || [] });
+        setLoadingComments({ ...loadingComments, [postId]: false });
+      } catch (err) {
+        console.error('Error loading comments:', err);
+        setLoadingComments({ ...loadingComments, [postId]: false });
+      }
+    }
+    setExpandedComments({
+      ...expandedComments,
+      [postId]: !expandedComments[postId]
+    });
+  };
+
+  const handleAddComment = async (e, postId) => {
+    e.preventDefault();
+    if (!isAuthenticated || !newComment[postId]?.trim()) return;
+
+    try {
+      const response = await commentAPI.createComment(postId, {
+        content: newComment[postId]
+      });
+      setComments({
+        ...comments,
+        [postId]: [...(comments[postId] || []), response.data]
+      });
+      setNewComment({ ...newComment, [postId]: '' });
+      // Update comment count
+      setPosts(posts.map(post =>
+        post._id === postId
+          ? { ...post, comments: [...(post.comments || []), response.data._id] }
+          : post
+      ));
+    } catch (err) {
+      console.error('Error adding comment:', err);
+    }
+  };
+
+  const showPostLikes = async (post) => {
+    if (!post.likes || post.likes.length === 0) return;
+
+    try {
+      // Fetch full user details for likes
+      const postDetails = await postAPI.getPost(post._id);
+      setSelectedPostLikes(postDetails.data.likes || []);
+      setShowLikesModal(true);
+    } catch (err) {
+      console.error('Error fetching likes:', err);
+    }
+  };
+
+  const handleReportClick = (post) => {
+    setReportingPost(post);
+    setShowReportModal(true);
+  };
+
+  const handleReportPost = async () => {
+    if (!reportingPost) return;
+
+    try {
+      await postAPI.reportPost(reportingPost._id);
+      setShowReportModal(false);
+      setReportingPost(null);
+      alert('Post reported successfully. Our moderation team will review it.');
+    } catch (err) {
+      console.error('Error reporting post:', err);
+      alert('Failed to report post');
+    }
+  };
+
+  const canModifyPost = (post) => {
+    if (!isAuthenticated || !currentUser) return false;
+    return post.author?._id === currentUser._id ||
+           currentUser.role === 'admin' ||
+           currentUser.role === 'moderator';
   };
 
   if (loading) {
@@ -261,13 +379,178 @@ function Profile() {
                 posts.map((post) => (
                   <Card key={post._id} className="mb-3">
                     <Card.Body>
-                      <p>{post.content}</p>
-                      <div className="text-muted small">
-                        {new Date(post.createdAt).toLocaleString()}
+                      <div className="d-flex align-items-center mb-2">
+                        <img
+                          src={post.author?.profilePicture || 'https://via.placeholder.com/40'}
+                          alt={post.author?.username}
+                          className="rounded-circle me-2"
+                          style={{ width: '40px', height: '40px' }}
+                        />
+                        <div className="flex-grow-1">
+                          <strong>{post.author?.username}</strong>
+                          <div className="text-muted small">
+                            {new Date(post.createdAt).toLocaleString()}
+                            {post.isEdited && <span className="ms-1">(edited)</span>}
+                          </div>
+                        </div>
+                        {isAuthenticated && currentUser && post.author?._id !== currentUser._id && (
+                          <Button
+                            variant="link"
+                            className="text-muted p-0"
+                            onClick={() => handleReportClick(post)}
+                            title="Report Post"
+                          >
+                            <FaFlag />
+                          </Button>
+                        )}
                       </div>
-                      <Link to={`/posts/${post._id}`} className="btn btn-sm btn-outline-primary mt-2">
-                        View Post
-                      </Link>
+
+                      <p className="mb-2">{post.content}</p>
+
+                      {post.images && post.images.length > 0 && (
+                        <div className="mb-2">
+                          {post.images.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="Post"
+                              className="img-fluid rounded mb-2"
+                              style={{ maxHeight: '400px' }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {post.movie && (
+                        <Card className="mb-2 border">
+                          <Card.Body>
+                            <Link to={`/details/${post.movie.tmdbId}`} className="text-decoration-none">
+                              <div className="d-flex">
+                                <img
+                                  src={`${IMAGE_BASE}${post.movie.posterPath}`}
+                                  alt={post.movie.title}
+                                  style={{ width: '60px', height: 'auto' }}
+                                  className="me-3"
+                                />
+                                <div>
+                                  <strong>{post.movie.title}</strong>
+                                  <p className="text-muted small mb-0">
+                                    {post.movie.overview?.substring(0, 100)}...
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Card.Body>
+                        </Card>
+                      )}
+
+                      <div className="d-flex gap-3 pt-2 border-top">
+                        <div className="d-flex align-items-center gap-2">
+                          <Button
+                            variant="link"
+                            className="text-decoration-none p-0"
+                            onClick={() => handleLike(post._id)}
+                            disabled={!isAuthenticated}
+                            title={post.likes?.includes(currentUser?._id) ? "Unlike" : "Like"}
+                          >
+                            <FaHeart className={post.likes?.includes(currentUser?._id) ? 'text-danger' : 'text-muted'} />
+                          </Button>
+                          {post.likes?.length > 0 && (
+                            <Button
+                              variant="link"
+                              className="text-decoration-none p-0 ps-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showPostLikes(post);
+                              }}
+                              title="View who liked this post"
+                              style={{
+                                fontSize: '0.95rem',
+                                minWidth: '30px'
+                              }}
+                            >
+                              <span className="text-muted hover-underline">
+                                {post.likes.length} {post.likes.length === 1 ? 'like' : 'likes'}
+                              </span>
+                            </Button>
+                          )}
+                          {!post.likes?.length && (
+                            <span className="text-muted" style={{ fontSize: '0.95rem' }}>
+                              0 likes
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="link"
+                          onClick={() => toggleComments(post._id)}
+                          className="text-decoration-none text-muted"
+                        >
+                          <FaComment />
+                          <span className="ms-1">{post.comments?.length || 0}</span>
+                        </Button>
+                      </div>
+
+                      {/* Inline Comments Section */}
+                      {expandedComments[post._id] && (
+                        <div className="mt-3 pt-3 border-top">
+                          {isAuthenticated ? (
+                            <Form onSubmit={(e) => handleAddComment(e, post._id)} className="mb-3">
+                              <Form.Group>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  placeholder="Write a comment..."
+                                  value={newComment[post._id] || ''}
+                                  onChange={(e) => setNewComment({ ...newComment, [post._id]: e.target.value })}
+                                />
+                              </Form.Group>
+                              <Button type="submit" variant="primary" size="sm" className="mt-2">
+                                Comment
+                              </Button>
+                            </Form>
+                          ) : (
+                            <p className="text-muted text-center mb-3">
+                              <Link to="/login">Login</Link> to comment
+                            </p>
+                          )}
+
+                          {loadingComments[post._id] ? (
+                            <div className="text-center py-3">
+                              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                <span className="visually-hidden">Loading...</span>
+                              </div>
+                            </div>
+                          ) : comments[post._id]?.length === 0 ? (
+                            <p className="text-muted text-center small">No comments yet. Be the first to comment!</p>
+                          ) : (
+                            <ListGroup variant="flush">
+                              {comments[post._id]?.map((comment) => (
+                                <ListGroup.Item key={comment._id} className="px-0 border-0">
+                                  <div className="d-flex">
+                                    <img
+                                      src={comment.author?.profilePicture || 'https://via.placeholder.com/32'}
+                                      alt={comment.author?.username}
+                                      className="rounded-circle me-2"
+                                      style={{ width: '32px', height: '32px' }}
+                                    />
+                                    <div className="flex-grow-1">
+                                      <div className="bg-light p-2 rounded">
+                                        <Link to={`/profile/${comment.author?._id}`} className="text-decoration-none">
+                                          <strong className="small">{comment.author?.username}</strong>
+                                        </Link>
+                                        <p className="mb-0 mt-1 small">{comment.content}</p>
+                                      </div>
+                                      <div className="text-muted small mt-1">
+                                        {new Date(comment.createdAt).toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </ListGroup.Item>
+                              ))}
+                            </ListGroup>
+                          )}
+                        </div>
+                      )}
                     </Card.Body>
                   </Card>
                 ))
@@ -390,6 +673,34 @@ function Profile() {
 
           <Form>
             <Form.Group className="mb-3">
+              <Form.Label>Username</Form.Label>
+              <Form.Control
+                type="text"
+                value={profileUser?.username || ''}
+                disabled
+                readOnly
+              />
+              <Form.Text className="text-muted">
+                Username cannot be changed
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={profileUser?.email || ''}
+                disabled
+                readOnly
+              />
+              <Form.Text className="text-muted">
+                Contact support to change your email
+              </Form.Text>
+            </Form.Group>
+
+            <hr className="my-4" />
+
+            <Form.Group className="mb-3">
               <Form.Label>Profile Picture URL</Form.Label>
               <Form.Control
                 type="url"
@@ -476,6 +787,20 @@ function Profile() {
                 placeholder="https://your-website.com"
               />
             </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Phone Number</Form.Label>
+              <Form.Control
+                type="tel"
+                name="phone"
+                value={editForm.phone}
+                onChange={handleEditFormChange}
+                placeholder="+1 (555) 123-4567"
+              />
+              <Form.Text className="text-muted">
+                Optional - Your phone number will remain private
+              </Form.Text>
+            </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
@@ -488,6 +813,83 @@ function Profile() {
             disabled={!!editSuccess}
           >
             {editSuccess ? 'Saved!' : 'Save Changes'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Likes Modal */}
+      <Modal show={showLikesModal} onHide={() => setShowLikesModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Liked by</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPostLikes.length === 0 ? (
+            <p className="text-center text-muted">No likes yet</p>
+          ) : (
+            <ListGroup variant="flush">
+              {selectedPostLikes.map((user) => (
+                <ListGroup.Item
+                  key={user._id}
+                  as={Link}
+                  to={`/profile/${user._id}`}
+                  onClick={() => setShowLikesModal(false)}
+                  action
+                >
+                  <div className="d-flex align-items-center">
+                    <img
+                      src={user.profilePicture || 'https://via.placeholder.com/40'}
+                      alt={user.username}
+                      className="rounded-circle me-2"
+                      style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                    />
+                    <strong>{user.username}</strong>
+                  </div>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          )}
+        </Modal.Body>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal show={showReportModal} onHide={() => setShowReportModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Report Post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <FaFlag className="me-2" />
+            <strong>Report this post to moderators</strong>
+          </Alert>
+          <p>This post will be flagged for review by our moderation team. If it violates our community guidelines, appropriate action will be taken.</p>
+          {reportingPost && (
+            <Card className="bg-light">
+              <Card.Body>
+                <div className="d-flex align-items-start mb-2">
+                  <img
+                    src={reportingPost.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    alt={reportingPost.author?.username}
+                    className="rounded-circle me-2"
+                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <strong className="small">{reportingPost.author?.username}</strong>
+                    <p className="mb-0 text-muted small mt-1">{reportingPost.content}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+          <p className="text-muted small mt-3 mb-0">
+            <strong>Note:</strong> False reports may result in action against your account.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={handleReportPost}>
+            <FaFlag className="me-1" /> Report Post
           </Button>
         </Modal.Footer>
       </Modal>

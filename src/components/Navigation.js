@@ -289,6 +289,14 @@ function Navigation() {
                     <FaUser className="me-1" /> My Profile
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
+                  {user?.role === 'admin' && (
+                    <>
+                      <NavDropdown.Item as={Link} to="/admin">
+                        Admin Dashboard
+                      </NavDropdown.Item>
+                      <NavDropdown.Divider />
+                    </>
+                  )}
                   {(user?.role === 'moderator' || user?.role === 'admin') && (
                     <>
                       <NavDropdown.Item as={Link} to="/moderation">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, ListGroup, Modal, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaHeart, FaComment, FaShare, FaFilm, FaEllipsisV, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaHeart, FaComment, FaShare, FaFilm, FaEllipsisV, FaEdit, FaTrash, FaFlag } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { postAPI, movieAPI, commentAPI } from '../services/api';
 import OnboardingModal from '../components/OnboardingModal';
@@ -37,9 +37,11 @@ function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [editedContent, setEditedContent] = useState('');
   const [deletingPost, setDeletingPost] = useState(null);
+  const [reportingPost, setReportingPost] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -268,6 +270,23 @@ function Home() {
     }
   };
 
+  const handleReportClick = (post) => {
+    setReportingPost(post);
+    setShowReportModal(true);
+  };
+
+  const handleReportPost = async () => {
+    try {
+      await postAPI.reportPost(reportingPost._id);
+      setShowReportModal(false);
+      setReportingPost(null);
+      setError('Post reported successfully. Our moderation team will review it.');
+    } catch (err) {
+      console.error('Error reporting post:', err);
+      setError('Failed to report post');
+    }
+  };
+
   const canModifyPost = (post) => {
     if (!isAuthenticated || !user) return false;
     return post.author?._id === user._id ||
@@ -378,20 +397,29 @@ function Home() {
                             {post.isEdited && <span className="ms-1">(edited)</span>}
                           </div>
                         </div>
-                        {canModifyPost(post) && (
+                        {isAuthenticated && (
                           <Dropdown align="end">
                             <Dropdown.Toggle as={CustomToggle} id={`dropdown-${post._id}`}>
                               <FaEllipsisV />
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
-                              <Dropdown.Item onClick={() => handleEditPost(post)}>
-                                <FaEdit className="me-2" />
-                                Edit
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleDeleteClick(post)} className="text-danger">
-                                <FaTrash className="me-2" />
-                                Delete
-                              </Dropdown.Item>
+                              {canModifyPost(post) ? (
+                                <>
+                                  <Dropdown.Item onClick={() => handleEditPost(post)}>
+                                    <FaEdit className="me-2" />
+                                    Edit
+                                  </Dropdown.Item>
+                                  <Dropdown.Item onClick={() => handleDeleteClick(post)} className="text-danger">
+                                    <FaTrash className="me-2" />
+                                    Delete
+                                  </Dropdown.Item>
+                                </>
+                              ) : (
+                                <Dropdown.Item onClick={() => handleReportClick(post)} className="text-warning">
+                                  <FaFlag className="me-2" />
+                                  Report Post
+                                </Dropdown.Item>
+                              )}
                             </Dropdown.Menu>
                           </Dropdown>
                         )}
@@ -418,23 +446,40 @@ function Home() {
                         </Card>
                       )}
                       <div className="d-flex gap-3 pt-2 border-top">
-                        <Button
-                          variant="link"
-                          className="text-decoration-none"
-                          onClick={() => handleLike(post._id)}
-                        >
-                          <FaHeart className={post.likes?.includes(user?._id) ? 'text-danger' : 'text-muted'} />
-                          <span
-                            className="ms-1"
-                            style={{ cursor: post.likes?.length > 0 ? 'pointer' : 'default' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (post.likes?.length > 0) showPostLikes(post);
-                            }}
+                        <div className="d-flex align-items-center gap-2">
+                          <Button
+                            variant="link"
+                            className="text-decoration-none p-0"
+                            onClick={() => handleLike(post._id)}
+                            title={post.likes?.includes(user?._id) ? "Unlike" : "Like"}
                           >
-                            {post.likes?.length || 0}
-                          </span>
-                        </Button>
+                            <FaHeart className={post.likes?.includes(user?._id) ? 'text-danger' : 'text-muted'} />
+                          </Button>
+                          {post.likes?.length > 0 && (
+                            <Button
+                              variant="link"
+                              className="text-decoration-none p-0 ps-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showPostLikes(post);
+                              }}
+                              title="View who liked this post"
+                              style={{
+                                fontSize: '0.95rem',
+                                minWidth: '30px'
+                              }}
+                            >
+                              <span className="text-muted hover-underline">
+                                {post.likes.length} {post.likes.length === 1 ? 'like' : 'likes'}
+                              </span>
+                            </Button>
+                          )}
+                          {!post.likes?.length && (
+                            <span className="text-muted" style={{ fontSize: '0.95rem' }}>
+                              0 likes
+                            </span>
+                          )}
+                        </div>
                         <Button
                           variant="link"
                           onClick={() => toggleComments(post._id)}
@@ -654,6 +699,49 @@ function Home() {
           </Button>
           <Button variant="danger" onClick={handleDeletePost}>
             Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal show={showReportModal} onHide={() => setShowReportModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Report Post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <FaFlag className="me-2" />
+            <strong>Report this post to moderators</strong>
+          </Alert>
+          <p>This post will be flagged for review by our moderation team. If it violates our community guidelines, appropriate action will be taken.</p>
+          {reportingPost && (
+            <Card className="bg-light">
+              <Card.Body>
+                <div className="d-flex align-items-start mb-2">
+                  <img
+                    src={reportingPost.author?.profilePicture || 'https://via.placeholder.com/40'}
+                    alt={reportingPost.author?.username}
+                    className="rounded-circle me-2"
+                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <strong className="small">{reportingPost.author?.username}</strong>
+                    <p className="mb-0 text-muted small mt-1">{reportingPost.content}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+          <p className="text-muted small mt-3 mb-0">
+            <strong>Note:</strong> False reports may result in action against your account.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={handleReportPost}>
+            <FaFlag className="me-1" /> Report Post
           </Button>
         </Modal.Footer>
       </Modal>

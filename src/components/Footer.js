@@ -17,6 +17,12 @@ function Footer() {
           </div>
           <div className="col-md-6 text-center text-md-end">
             <Link
+              to="/about"
+              className={`${darkMode ? 'text-light' : 'text-muted'} text-decoration-none me-3`}
+            >
+              About & Credits
+            </Link>
+            <Link
               to="/privacy"
               className={`${darkMode ? 'text-light' : 'text-muted'} text-decoration-none me-3`}
             >

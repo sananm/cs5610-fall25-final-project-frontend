@@ -19,6 +19,9 @@ import UserSearchPage from './pages/UserSearchPage';
 import MovieDetails from './pages/MovieDetails';
 import PostDetails from './pages/PostDetails';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Moderation from './pages/Moderation';
+import AdminDashboard from './pages/AdminDashboard';
+import About from './pages/About';
 
 // Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -84,6 +87,7 @@ function AppContent() {
         <Route path="/details/:tmdbId" element={<MovieDetails />} />
         <Route path="/posts/:postId" element={<PostDetails />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/about" element={<About />} />
 
         {/* Protected routes */}
         <Route
@@ -97,6 +101,22 @@ function AppContent() {
         <Route
           path="/profile/:userId"
           element={<Profile />}
+        />
+        <Route
+          path="/moderation"
+          element={
+            <ProtectedRoute>
+              <Moderation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
         />
 
         {/* 404 */}

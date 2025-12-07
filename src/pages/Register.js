@@ -7,6 +7,7 @@ function Register() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     firstName: '',
@@ -114,14 +115,16 @@ function Register() {
                   />
                 </Form.Group>
                 <Form.Group className="mb-3">
-                  <Form.Label>Role</Form.Label>
-                  <Form.Select name="role" value={formData.role} onChange={handleChange}>
-                    <option value="regular">Regular User</option>
-                    <option value="moderator">Moderator</option>
-                    <option value="admin">Admin</option>
-                  </Form.Select>
+                  <Form.Label>Phone Number</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    name="phone"
+                    placeholder="+1 (555) 123-4567"
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
                   <Form.Text className="text-muted">
-                    Select your user role (for demo purposes)
+                    Optional - Your phone number will remain private
                   </Form.Text>
                 </Form.Group>
                 <Form.Group className="mb-3">
