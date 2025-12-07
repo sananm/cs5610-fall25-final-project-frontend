@@ -1510,15 +1510,30 @@ footer {
   box-shadow: 0 6px 20px rgba(165, 180, 252, 0.6) !important;
 }
 
+/* ========== TOAST NOTIFICATIONS ========== */
+.Toastify__toast-container {
+  z-index: 99999 !important;
+}
+
+.Toastify__toast {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+}
+
 /* ========== TOAST NOTIFICATIONS - DARK MODE ========== */
 [data-bs-theme="dark"] .Toastify__toast {
-  background: var(--dark-surface);
-  color: var(--dark-text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
 }
 
 [data-bs-theme="dark"] .Toastify__toast--info {
-  background: var(--dark-surface);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
 }
 
 [data-bs-theme="dark"] .Toastify__toast--success {

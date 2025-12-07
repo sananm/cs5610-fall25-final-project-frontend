@@ -42,6 +42,8 @@ function Home() {
   const [editedContent, setEditedContent] = useState('');
   const [deletingPost, setDeletingPost] = useState(null);
   const [reportingPost, setReportingPost] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -399,6 +401,94 @@ function Home() {
            user.role === 'moderator';
   };
 
+  const handleEditComment = async (postId, commentId) => {
+    if (!editCommentContent.trim()) {
+      setError('Comment cannot be empty');
+      return;
+    }
+
+    const previousContent = comments[postId]?.find(c => c._id === commentId)?.content;
+
+    // Optimistically update the comment
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: prevComments[postId].map(comment =>
+        comment._id === commentId
+          ? { ...comment, content: editCommentContent }
+          : comment
+      )
+    }));
+
+    setEditingComment(null);
+    setEditCommentContent('');
+
+    try {
+      await commentAPI.updateComment(commentId, { content: editCommentContent });
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      setError('Failed to update comment');
+      // Revert on error
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: prevComments[postId].map(comment =>
+          comment._id === commentId
+            ? { ...comment, content: previousContent }
+            : comment
+        )
+      }));
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    if (!window.confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+
+    // Store the deleted comment for potential revert
+    const deletedComment = comments[postId]?.find(c => c._id === commentId);
+
+    // Optimistically remove the comment
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: prevComments[postId].filter(comment => comment._id !== commentId)
+    }));
+
+    // Update post comment count
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post._id === postId) {
+        return {
+          ...post,
+          comments: post.comments.filter(id => id !== commentId)
+        };
+      }
+      return post;
+    }));
+
+    try {
+      await commentAPI.deleteComment(commentId);
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      setError('Failed to delete comment');
+      // Revert on error
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: [...(prevComments[postId] || []), deletedComment].sort((a, b) =>
+          new Date(a.createdAt) - new Date(b.createdAt)
+        )
+      }));
+      // Revert post comment count
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          return {
+            ...post,
+            comments: [...post.comments, commentId]
+          };
+        }
+        return post;
+      }));
+    }
+  };
+
   const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
   return (
@@ -503,30 +593,37 @@ function Home() {
                           </div>
                         </div>
                         {isAuthenticated && (
-                          <Dropdown align="end">
-                            <Dropdown.Toggle as={CustomToggle} id={`dropdown-${post._id}`}>
-                              <FaEllipsisV />
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              {canModifyPost(post) ? (
-                                <>
-                                  <Dropdown.Item onClick={() => handleEditPost(post)}>
-                                    <FaEdit className="me-2" />
-                                    Edit
-                                  </Dropdown.Item>
-                                  <Dropdown.Item onClick={() => handleDeleteClick(post)} className="text-danger">
-                                    <FaTrash className="me-2" />
-                                    Delete
-                                  </Dropdown.Item>
-                                </>
-                              ) : (
-                                <Dropdown.Item onClick={() => handleReportClick(post)} className="text-warning">
-                                  <FaFlag className="me-2" />
-                                  Report Post
-                                </Dropdown.Item>
-                              )}
-                            </Dropdown.Menu>
-                          </Dropdown>
+                          <div className="d-flex gap-2">
+                            {canModifyPost(post) ? (
+                              <>
+                                <Button
+                                  variant="link"
+                                  className="text-muted p-0"
+                                  onClick={() => handleEditPost(post)}
+                                  title="Edit Post"
+                                >
+                                  <FaEdit />
+                                </Button>
+                                <Button
+                                  variant="link"
+                                  className="text-danger p-0"
+                                  onClick={() => handleDeleteClick(post)}
+                                  title="Delete Post"
+                                >
+                                  <FaTrash />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="link"
+                                className="text-muted p-0"
+                                onClick={() => handleReportClick(post)}
+                                title="Report Post"
+                              >
+                                <FaFlag />
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                       <p>{post.content}</p>
@@ -631,25 +728,98 @@ function Home() {
                             <ListGroup variant="flush">
                               {comments[post._id]?.map((comment) => (
                                 <ListGroup.Item key={comment._id} className="px-0 border-0">
-                                  <div className="d-flex">
-                                    <img
-                                      src={comment.author?.profilePicture || "/default-avatar.png"}
-                                      alt={comment.author?.username}
-                                      className="rounded-circle me-2"
-                                      style={{ width: '32px', height: '32px' }}
-                                    />
-                                    <div className="flex-grow-1">
-                                      <div className="bg-light p-2 rounded">
-                                        <Link to={`/profile/${comment.author?._id}`} className="text-decoration-none">
-                                          <strong className="small">{comment.author?.username}</strong>
-                                        </Link>
-                                        <p className="mb-0 mt-1 small">{comment.content}</p>
-                                      </div>
-                                      <div className="text-muted small mt-1">
-                                        {new Date(comment.createdAt).toLocaleString()}
+                                  {editingComment === comment._id ? (
+                                    // Edit mode
+                                    <div className="d-flex">
+                                      <img
+                                        src={comment.author?.profilePicture || "/default-avatar.png"}
+                                        alt={comment.author?.username}
+                                        className="rounded-circle me-2"
+                                        style={{ width: '32px', height: '32px' }}
+                                      />
+                                      <div className="flex-grow-1">
+                                        <Form.Control
+                                          as="textarea"
+                                          rows={2}
+                                          value={editCommentContent}
+                                          onChange={(e) => setEditCommentContent(e.target.value)}
+                                          className="mb-2"
+                                        />
+                                        <div className="d-flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="primary"
+                                            onClick={() => handleEditComment(post._id, comment._id)}
+                                          >
+                                            Save
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() => {
+                                              setEditingComment(null);
+                                              setEditCommentContent('');
+                                            }}
+                                          >
+                                            Cancel
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
+                                  ) : (
+                                    // View mode
+                                    <div className="d-flex">
+                                      <img
+                                        src={comment.author?.profilePicture || "/default-avatar.png"}
+                                        alt={comment.author?.username}
+                                        className="rounded-circle me-2"
+                                        style={{ width: '32px', height: '32px' }}
+                                      />
+                                      <div className="flex-grow-1">
+                                        <div className="bg-light p-2 rounded">
+                                          <div className="d-flex justify-content-between align-items-start">
+                                            <div className="flex-grow-1">
+                                              <Link to={`/profile/${comment.author?._id}`} className="text-decoration-none">
+                                                <strong className="small">{comment.author?.username}</strong>
+                                              </Link>
+                                              <p className="mb-0 mt-1 small">{comment.content}</p>
+                                            </div>
+                                            {isAuthenticated && comment.author?._id === user._id && (
+                                              <Dropdown align="end">
+                                                <Dropdown.Toggle
+                                                  as={CustomToggle}
+                                                  id={`comment-dropdown-${comment._id}`}
+                                                >
+                                                  <FaEllipsisV size={12} />
+                                                </Dropdown.Toggle>
+                                                <Dropdown.Menu>
+                                                  <Dropdown.Item
+                                                    onClick={() => {
+                                                      setEditingComment(comment._id);
+                                                      setEditCommentContent(comment.content);
+                                                    }}
+                                                  >
+                                                    <FaEdit className="me-2" />
+                                                    Edit
+                                                  </Dropdown.Item>
+                                                  <Dropdown.Item
+                                                    onClick={() => handleDeleteComment(post._id, comment._id)}
+                                                    className="text-danger"
+                                                  >
+                                                    <FaTrash className="me-2" />
+                                                    Delete
+                                                  </Dropdown.Item>
+                                                </Dropdown.Menu>
+                                              </Dropdown>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="text-muted small mt-1">
+                                          {new Date(comment.createdAt).toLocaleString()}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </ListGroup.Item>
                               ))}
                             </ListGroup>

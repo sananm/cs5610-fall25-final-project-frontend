@@ -164,9 +164,10 @@ function UserSearch({ initialQuery = '' }) {
 
                   {isAuthenticated && currentUser && user._id !== currentUser._id && (
                     <Button
-                      variant={followingStatus[user._id] ? 'outline-secondary' : 'primary'}
+                      variant="primary"
                       size="sm"
                       onClick={() => handleFollowToggle(user._id)}
+                      className={followingStatus[user._id] ? 'btn-unfollow' : ''}
                     >
                       {followingStatus[user._id] ? (
                         <>

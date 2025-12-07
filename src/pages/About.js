@@ -8,21 +8,13 @@ function About() {
       name: 'Sanan Moinuddin',
       section: 'CS 5610 - Section 01',
       role: 'Full Stack Developer',
-      // Add your GitHub profile if you want
-      github: 'https://github.com/yourusername'
-    },
-    // Add more team members here if applicable
-    // {
-    //   name: 'Team Member 2',
-    //   section: 'CS 5610 - Section 01',
-    //   role: 'Frontend Developer',
-    //   github: 'https://github.com/username2'
-    // }
+      github: 'https://github.com/sananm'
+    }
   ];
 
   const repositories = {
-    frontend: 'https://github.com/yourusername/reeltalk-frontend',
-    backend: 'https://github.com/yourusername/reeltalk-backend'
+    frontend: 'https://github.com/sananm/cs5610-fall25-final-project-frontend',
+    backend: 'https://github.com/sananm/cs5610-fall25-final-project-backend'
   };
 
   const technologies = {

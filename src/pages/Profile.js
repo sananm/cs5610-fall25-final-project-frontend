@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Tab, Tabs, ListGroup, Modal, Form, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Tab, Tabs, ListGroup, Modal, Form, Alert, Dropdown } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userAPI, postAPI, movieAPI, authAPI, commentAPI } from '../services/api';
 import { FaUserPlus, FaUserMinus, FaEdit, FaStar, FaHeart, FaComment, FaFlag, FaEllipsisV, FaTrash } from 'react-icons/fa';
+
+// Custom Dropdown Toggle without caret
+const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
+  <span
+    ref={ref}
+    onClick={(e) => {
+      e.preventDefault();
+      onClick(e);
+    }}
+    style={{ cursor: 'pointer' }}
+    className="text-muted"
+  >
+    {children}
+  </span>
+));
 
 function Profile() {
   const { userId } = useParams();
@@ -36,6 +51,8 @@ function Profile() {
   const [comments, setComments] = useState({});
   const [newComment, setNewComment] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
+  const [editingComment, setEditingComment] = useState(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [selectedPostLikes, setSelectedPostLikes] = useState([]);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -360,6 +377,65 @@ function Profile() {
     }
   };
 
+  const handleEditComment = async (postId, commentId) => {
+    if (!editCommentContent.trim()) return;
+
+    const previousContent = comments[postId]?.find(c => c._id === commentId)?.content;
+
+    // Update UI immediately
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: prevComments[postId].map(comment =>
+        comment._id === commentId
+          ? { ...comment, content: editCommentContent }
+          : comment
+      )
+    }));
+
+    setEditingComment(null);
+    setEditCommentContent('');
+
+    try {
+      await commentAPI.updateComment(commentId, { content: editCommentContent });
+    } catch (err) {
+      console.error('Error editing comment:', err);
+      // Revert on error
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: prevComments[postId].map(comment =>
+          comment._id === commentId
+            ? { ...comment, content: previousContent }
+            : comment
+        )
+      }));
+      alert('Failed to edit comment. Please try again.');
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+
+    // Remove from UI immediately
+    setComments(prevComments => ({
+      ...prevComments,
+      [postId]: prevComments[postId].filter(comment => comment._id !== commentId)
+    }));
+
+    // Update comment count
+    setPosts(prevPosts => prevPosts.map(post =>
+      post._id === postId
+        ? { ...post, comments: post.comments.filter(id => id !== commentId) }
+        : post
+    ));
+
+    try {
+      await commentAPI.deleteComment(commentId);
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('Failed to delete comment. Please refresh the page.');
+    }
+  };
+
   const showPostLikes = async (post) => {
     if (!post.likes || post.likes.length === 0) return;
 
@@ -665,15 +741,75 @@ function Profile() {
                                       style={{ width: '32px', height: '32px' }}
                                     />
                                     <div className="flex-grow-1">
-                                      <div className="bg-light p-2 rounded">
-                                        <Link to={`/profile/${comment.author?._id}`} className="text-decoration-none">
-                                          <strong className="small">{comment.author?.username}</strong>
-                                        </Link>
-                                        <p className="mb-0 mt-1 small">{comment.content}</p>
-                                      </div>
-                                      <div className="text-muted small mt-1">
-                                        {new Date(comment.createdAt).toLocaleString()}
-                                      </div>
+                                      {editingComment === comment._id ? (
+                                        <Form onSubmit={(e) => {
+                                          e.preventDefault();
+                                          handleEditComment(post._id, comment._id);
+                                        }}>
+                                          <Form.Control
+                                            as="textarea"
+                                            rows={2}
+                                            value={editCommentContent}
+                                            onChange={(e) => setEditCommentContent(e.target.value)}
+                                            autoFocus
+                                          />
+                                          <div className="mt-2">
+                                            <Button type="submit" variant="primary" size="sm" className="me-2">
+                                              Save
+                                            </Button>
+                                            <Button
+                                              variant="secondary"
+                                              size="sm"
+                                              onClick={() => {
+                                                setEditingComment(null);
+                                                setEditCommentContent('');
+                                              }}
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        </Form>
+                                      ) : (
+                                        <>
+                                          <div className="bg-light p-2 rounded">
+                                            <div className="d-flex justify-content-between align-items-start">
+                                              <Link to={`/profile/${comment.author?._id}`} className="text-decoration-none">
+                                                <strong className="small">{comment.author?.username}</strong>
+                                              </Link>
+                                              {comment.author?._id === currentUser?._id && (
+                                                <Dropdown>
+                                                  <Dropdown.Toggle
+                                                    as={CustomToggle}
+                                                    id={`comment-dropdown-${comment._id}`}
+                                                  >
+                                                    <FaEllipsisV size={12} />
+                                                  </Dropdown.Toggle>
+                                                  <Dropdown.Menu align="end">
+                                                    <Dropdown.Item
+                                                      onClick={() => {
+                                                        setEditingComment(comment._id);
+                                                        setEditCommentContent(comment.content);
+                                                      }}
+                                                    >
+                                                      <FaEdit className="me-1" /> Edit
+                                                    </Dropdown.Item>
+                                                    <Dropdown.Item
+                                                      onClick={() => handleDeleteComment(post._id, comment._id)}
+                                                      className="text-danger"
+                                                    >
+                                                      <FaTrash className="me-1" /> Delete
+                                                    </Dropdown.Item>
+                                                  </Dropdown.Menu>
+                                                </Dropdown>
+                                              )}
+                                            </div>
+                                            <p className="mb-0 mt-1 small">{comment.content}</p>
+                                          </div>
+                                          <div className="text-muted small mt-1">
+                                            {new Date(comment.createdAt).toLocaleString()}
+                                          </div>
+                                        </>
+                                      )}
                                     </div>
                                   </div>
                                 </ListGroup.Item>

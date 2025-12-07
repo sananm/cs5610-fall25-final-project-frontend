@@ -58,12 +58,18 @@ function Navigation() {
       fetchUnreadCount();
       fetchNotifications();
 
-      // Poll for new notifications every 10 seconds
+      // Poll for new notifications every 3 seconds
       const interval = setInterval(() => {
         fetchUnreadCount();
-      }, 10000);
+      }, 3000);
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+      };
+    } else {
+      // Reset on logout
+      isInitialMount.current = true;
+      previousUnreadCount.current = 0;
     }
   }, [isAuthenticated]);
 
@@ -80,18 +86,7 @@ function Navigation() {
 
         if (latestNotif) {
           toast.info(
-            <div className="d-flex align-items-center">
-              <img
-                src={latestNotif.sender?.profilePicture || "/default-avatar.png"}
-                alt={latestNotif.sender?.username}
-                className="rounded-circle me-2"
-                style={{ width: '32px', height: '32px' }}
-              />
-              <div>
-                <div style={{ fontWeight: '500' }}>{latestNotif.sender?.username}</div>
-                <small>{latestNotif.message.replace(latestNotif.sender?.username + ' ', '')}</small>
-              </div>
-            </div>,
+            latestNotif.message || 'New notification',
             {
               position: "bottom-right",
               autoClose: 5000,
@@ -99,6 +94,13 @@ function Navigation() {
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
+              icon: "🔔",
+              style: {
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              },
               onClick: () => {
                 if (latestNotif.link) navigate(latestNotif.link);
               }
