@@ -5,10 +5,22 @@ import { FaGithub, FaExternalLinkAlt, FaUsers, FaCode, FaDatabase } from 'react-
 function About() {
   const teamMembers = [
     {
-      name: 'Sanan Moinuddin',
-      section: 'CS 5610 - Section 01',
+      name: 'Mohammed Sanan Moinuddin',
+      section: 'CS 5610 - Section 05',
       role: 'Full Stack Developer',
       github: 'https://github.com/sananm'
+    },
+    {
+      name: 'Nishit Agarwal',
+      section: 'CS 5610 - Section 05',
+      role: 'Full Stack Developer',
+      github: 'https://github.com/N91489'
+    },
+    {
+      name: 'Pranav Gupta',
+      section: 'CS 5610 - Section 05',
+      role: 'Full Stack Developer',
+      github: 'https://github.com/PranavGupta26'
     }
   ];
 
@@ -61,7 +73,7 @@ function About() {
       <Row className="mb-5">
         <Col>
           <Card>
-            <Card.Header className="bg-white">
+            <Card.Header>
               <h3 className="mb-0">
                 <FaUsers className="me-2 text-primary" />
                 Team Members
@@ -106,7 +118,7 @@ function About() {
       <Row className="mb-5">
         <Col>
           <Card>
-            <Card.Header className="bg-white">
+            <Card.Header>
               <h3 className="mb-0">
                 <FaGithub className="me-2 text-primary" />
                 Source Code Repositories
@@ -168,7 +180,7 @@ function About() {
       <Row className="mb-5">
         <Col>
           <Card>
-            <Card.Header className="bg-white">
+            <Card.Header>
               <h3 className="mb-0">Technologies Used</h3>
             </Card.Header>
             <Card.Body>
@@ -205,7 +217,7 @@ function About() {
       <Row className="mb-5">
         <Col>
           <Card>
-            <Card.Header className="bg-white">
+            <Card.Header>
               <h3 className="mb-0">About ReelTalk</h3>
             </Card.Header>
             <Card.Body>

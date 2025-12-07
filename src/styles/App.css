@@ -120,8 +120,46 @@ p {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 1030 !important;
   transition: all var(--transition-base);
-  height: 70px;
+  min-height: 70px;
   padding: 0.75rem 1rem !important;
+}
+
+/* Only set fixed height on larger screens when navbar is expanded */
+@media (min-width: 992px) {
+  .navbar {
+    height: 70px;
+  }
+}
+
+/* Ensure navbar collapse is hidden on mobile by default */
+@media (max-width: 991px) {
+  .navbar-collapse:not(.show) {
+    display: none !important;
+  }
+
+  .navbar-collapse.show {
+    display: block !important;
+  }
+
+  /* Center navbar content on mobile */
+  .navbar-collapse {
+    text-align: center;
+  }
+
+  .navbar-collapse .navbar-nav {
+    align-items: center !important;
+  }
+
+  .navbar-collapse form {
+    justify-content: center !important;
+  }
+
+  .navbar-collapse .nav-link,
+  .navbar-collapse .dropdown,
+  .navbar-collapse button {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .navbar-brand {
@@ -858,7 +896,7 @@ p {
   }
 
   .navbar {
-    height: 65px;
+    min-height: 65px;
   }
 
   .profile-picture {

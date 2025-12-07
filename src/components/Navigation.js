@@ -18,6 +18,7 @@ function Navigation() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const previousUnreadCount = useRef(0);
   const isInitialMount = useRef(true);
 
@@ -29,11 +30,17 @@ function Navigation() {
       } else {
         navigate(`/search/${searchQuery}`);
       }
+      setExpanded(false); // Close navbar after search
     }
+  };
+
+  const closeNavbar = () => {
+    setExpanded(false);
   };
 
   const handleLogout = async () => {
     toast.dismiss(); // Dismiss all active toasts
+    setExpanded(false); // Close navbar
     await logout();
     navigate('/');
   };
@@ -160,15 +167,15 @@ function Navigation() {
   };
 
   return (
-    <Navbar bg={darkMode ? "dark" : "light"} variant={darkMode ? "dark" : "light"} expand="lg" fixed="top" className="shadow-sm">
+    <Navbar bg={darkMode ? "dark" : "light"} variant={darkMode ? "dark" : "light"} expand="lg" fixed="top" className="shadow-sm" expanded={expanded} onToggle={setExpanded}>
       <Container>
-        <Navbar.Brand as={Link} to="/">
+        <Navbar.Brand as={Link} to="/" onClick={closeNavbar}>
           <FaFilm className="me-2" />
           ReelTalk
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Form className="d-flex mx-auto align-items-center" style={{ width: '450px' }} onSubmit={handleSearch}>
+          <Form className="d-flex mx-auto align-items-center my-2 my-lg-0" style={{ width: '100%', maxWidth: '450px' }} onSubmit={handleSearch}>
             <Dropdown className="me-2">
               <Dropdown.Toggle
                 variant={darkMode ? "outline-light" : "outline-dark"}
@@ -197,22 +204,22 @@ function Navigation() {
               <FaSearch />
             </Button>
           </Form>
-          <Nav className="ms-auto align-items-center">
-            <Nav.Link as={Link} to="/">
+          <Nav className="ms-auto align-items-lg-center">
+            <Nav.Link as={Link} to="/" onClick={closeNavbar}>
               <FaHome className="me-1" /> Home
             </Nav.Link>
             <Button
               variant={darkMode ? "outline-light" : "outline-dark"}
               size="sm"
               onClick={toggleDarkMode}
-              className="me-2"
+              className="me-2 my-2 my-lg-0"
               title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {darkMode ? <FaSun /> : <FaMoon />}
             </Button>
             {isAuthenticated ? (
               <>
-                <Dropdown show={showNotifications} onToggle={setShowNotifications} className="me-2">
+                <Dropdown show={showNotifications} onToggle={setShowNotifications} className="me-2 my-2 my-lg-0">
                   <Dropdown.Toggle
                     as={Button}
                     variant={darkMode ? "outline-light" : "outline-dark"}
@@ -288,13 +295,13 @@ function Navigation() {
                   id="basic-nav-dropdown"
                   align="end"
                 >
-                  <NavDropdown.Item as={Link} to="/profile">
+                  <NavDropdown.Item as={Link} to="/profile" onClick={closeNavbar}>
                     <FaUser className="me-1" /> My Profile
                   </NavDropdown.Item>
                   <NavDropdown.Divider />
                   {user?.role === 'admin' && (
                     <>
-                      <NavDropdown.Item as={Link} to="/admin">
+                      <NavDropdown.Item as={Link} to="/admin" onClick={closeNavbar}>
                         Admin Dashboard
                       </NavDropdown.Item>
                       <NavDropdown.Divider />
@@ -302,7 +309,7 @@ function Navigation() {
                   )}
                   {(user?.role === 'moderator' || user?.role === 'admin') && (
                     <>
-                      <NavDropdown.Item as={Link} to="/moderation">
+                      <NavDropdown.Item as={Link} to="/moderation" onClick={closeNavbar}>
                         Moderation
                       </NavDropdown.Item>
                       <NavDropdown.Divider />
@@ -315,7 +322,7 @@ function Navigation() {
               </>
             ) : (
               <>
-                <Nav.Link as={Link} to="/login">
+                <Nav.Link as={Link} to="/login" onClick={closeNavbar}>
                   Login
                 </Nav.Link>
                 <Button
@@ -324,6 +331,7 @@ function Navigation() {
                   variant="primary"
                   size="sm"
                   className="ms-2"
+                  onClick={closeNavbar}
                 >
                   Sign Up
                 </Button>
