@@ -279,7 +279,7 @@ function About() {
             <Card.Body className="text-center">
               <h5 className="mb-3">Deployment</h5>
               <p className="text-muted mb-3">
-                Frontend deployed on Vercel/Netlify | Backend deployed on Render/Railway
+                Frontend deployed on Vercel | Backend deployed on Render
               </p>
               <p className="mb-0">
                 <small className="text-muted">
