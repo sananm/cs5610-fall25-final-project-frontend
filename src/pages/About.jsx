@@ -62,7 +62,7 @@ function About() {
                 A Social Movie Network for Film Enthusiasts
               </p>
               <p className="mt-2">
-                CS 5610 Web Development - Fall 2024
+                CS 5610 Web Development - Fall 2025
               </p>
             </Card.Body>
           </Card>
